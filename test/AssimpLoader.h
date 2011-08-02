@@ -3,9 +3,9 @@
 
 #include <string>
 #include <OgreMesh.h>
-#include <AssImp/assimp.hpp>
-#include <AssImp/aiScene.h>
-#include <AssImp/aiPostProcess.h>
+#include <assimp/assimp.hpp>
+#include <assimp/aiScene.h>
+#include <assimp/aiPostProcess.h>
 #include <map>
 //#include "GOOFSharedFrameworkData.h"
 
@@ -47,7 +47,7 @@ public:
 	const Ogre::String& getBasename(){ return mBasename; }
 	
 private:
-    bool createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::MeshPtr mesh, Ogre::AxisAlignedBox& mAAB, const Ogre::String& mDir);
+    bool createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::MeshPtr mMesh, Ogre::AxisAlignedBox& mAAB, const Ogre::String& mDir);
    	Ogre::MaterialPtr createMaterial(int index, const aiMaterial* mat, const Ogre::String& mDir);
 	Ogre::MaterialPtr createMaterialByScript(int index, const aiMaterial* mat);
 	void grabNodeNamesFromNode(const aiScene* mScene,  const aiNode* pNode);

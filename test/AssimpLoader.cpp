@@ -1,5 +1,5 @@
 #include "AssimpLoader.h"
-#include "AssImp/DefaultLogger.h"
+#include "assimp/DefaultLogger.h"
 #include "OgreDataStream.h"
 #include "OgreImage.h"
 #include "OgreTexture.h"
@@ -162,7 +162,7 @@ bool AssimpLoader::convert(const Ogre::String& filename,
 			{			
 				// Automatic
 				Ogre::VertexDeclaration* newDcl =
-                sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation());
+                sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation(), false);
 				if (*newDcl != *(sm->vertexData->vertexDeclaration))
 				{
 					// Usages don't matter here since we're only exporting
