@@ -7,7 +7,6 @@
 #include <assimp/aiScene.h>
 #include <assimp/aiPostProcess.h>
 #include <map>
-//#include "GOOFSharedFrameworkData.h"
 
 //TODO: only need a bool ?
 struct boneNode
@@ -17,35 +16,35 @@ struct boneNode
     bool isNeeded;
 };
 
-class AssimpLoader //: public GOOF::SharedFrameworkData
+class AssimpLoader
 {
 public:
 	enum LoaderParams
 	{
 		LP_GENERATE_SINGLE_MESH = 1<<0,
-		
+
 		// See the two possible methods for material gneration
 		LP_GENERATE_MATERIALS_AS_CODE = 1<<1,
-		
+
 		// 3ds max exports the animation over a longer time frame than the animation actually plays for
 		// this is a fix for that
 		LP_CUT_ANIMATION_WHERE_NO_FURTHER_CHANGE = 1<<2,
-		
+
 		// when 3ds max exports as DAE it gets some of the transforms wrong, get around this by using
 		// this option and a prior run with of the model exported as ASE
 		LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS = 1<<3
 	};
-	
+
     AssimpLoader();
     virtual ~AssimpLoader();
 
 	// customAnimationName is only applied if the skeleton only has one animation
-    bool convert(const Ogre::String& filename, 
+    bool convert(const Ogre::String& filename,
 				 const Ogre::String& customAnimationName = "",
 				 int loaderParams = (LP_GENERATE_SINGLE_MESH | LP_GENERATE_MATERIALS_AS_CODE) );
-	
+
 	const Ogre::String& getBasename(){ return mBasename; }
-	
+
 private:
     bool createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::MeshPtr mMesh, Ogre::AxisAlignedBox& mAAB, const Ogre::String& mDir);
    	Ogre::MaterialPtr createMaterial(int index, const aiMaterial* mat, const Ogre::String& mDir);
@@ -74,15 +73,15 @@ private:
 
 	typedef std::map<Ogre::String, const aiBone*> BoneMap;
 	BoneMap mBonesByName;
-	
+
 	typedef std::map<Ogre::String, aiMatrix4x4> NodeTransformMap;
 	NodeTransformMap mNodeDerivedTransformByName;
-	
+
 	typedef std::vector<Ogre::MeshPtr> MeshVector;
 	MeshVector mMeshes;
-	
+
 	Ogre::SkeletonPtr mSkeleton;
-	
+
 	static int msBoneCount;
 };
 

@@ -34,6 +34,8 @@ THE SOFTWARE.
 #include <OgreSkeletonSerializer.h>
 #include <OgreDefaultHardwareBufferManager.h>
 #include <OgreProgressiveMesh.h>
+#include <OgreScriptCompiler.h>
+#include <OgreFileSystem.h>
 
 #include "AssimpLoader.h"
 
@@ -43,6 +45,7 @@ struct AssOptions
     Ogre::String dest;
     Ogre::String sourceExt;
     Ogre::String destExt;
+    bool quietMode;
     Ogre::String logFile;
 };
 
@@ -53,6 +56,8 @@ void help(void)
     std::cout << "Provided for OGRE by Steve Streeting" << std::endl << std::endl;
     std::cout << "Usage: OgreXMLConverter [options] sourcefile [destfile] " << std::endl;
     std::cout << std::endl << "Available options:" << std::endl;
+    std::cout << "-q             = Quiet mode, less output" << std::endl;
+    std::cout << "-log filename  = name of the log file (default: 'ass.log')" << std::endl;
     std::cout << "sourcefile     = name of file to convert" << std::endl;
     std::cout << "destfile       = optional name of file to write to. If you don't" << std::endl;
     std::cout << "                 specify this OGRE works it out through the extension " << std::endl;
@@ -66,13 +71,35 @@ void help(void)
 AssOptions parseArgs(int numArgs, char **args)
 {
     AssOptions opts;
+    opts.quietMode = false;
     opts.logFile = "ass.log";
 
     // ignore program name
     char* source = 0;
     char* dest = 0;
 
-    int startIndex = 1;
+    // Set up options
+    Ogre::UnaryOptionList unOpt;
+    Ogre::BinaryOptionList binOpt;
+
+    unOpt["-q"] = false;
+    binOpt["-log"] = "ass.log";
+
+    int startIndex = Ogre::findCommandLineOpts(numArgs, args, unOpt, binOpt);
+    Ogre::UnaryOptionList::iterator ui;
+    Ogre::BinaryOptionList::iterator bi;
+
+    ui = unOpt.find("-q");
+    if (ui->second)
+    {
+        opts.quietMode = true;
+    }
+
+    bi = binOpt.find("-log");
+    if (!bi->second.empty())
+    {
+        opts.logFile = bi->second;
+    }
 
     // Source / dest
     if (numArgs > startIndex)
@@ -122,12 +149,14 @@ AssOptions parseArgs(int numArgs, char **args)
     Ogre::StringUtil::toLowerCase(ext);
     opts.destExt = ext;
 
-    if (true)
+    if (!opts.quietMode)
     {
         std::cout << std::endl;
         std::cout << "-- OPTIONS --" << std::endl;
+
         std::cout << "source file      = " << opts.source << std::endl;
         std::cout << "destination file = " << opts.dest << std::endl;
+        std::cout << "log file         = " << opts.logFile << std::endl;
 
         std::cout << "-- END OPTIONS --" << std::endl;
         std::cout << std::endl;
@@ -151,6 +180,9 @@ Ogre::SkeletonSerializer* skeletonSerializer = 0;
 Ogre::DefaultHardwareBufferManager *bufferManager = 0;
 Ogre::MeshManager* meshMgr = 0;
 Ogre::ResourceGroupManager* rgm = 0;
+Ogre::ScriptCompilerManager* scmgr = 0;
+Ogre::ArchiveManager* archmgr = 0;
+Ogre::FileSystemArchiveFactory* mfsarchf = 0;
 
 int main(int numargs, char** args)
 {
@@ -188,6 +220,13 @@ int main(int numargs, char** args)
         skeletonSerializer = new Ogre::SkeletonSerializer();
         //xmlSkeletonSerializer = new Ogre::XMLSkeletonSerializer();
         bufferManager = new Ogre::DefaultHardwareBufferManager(); // needed because we don't have a rendersystem
+        scmgr = new Ogre::ScriptCompilerManager();
+        archmgr = new Ogre::ArchiveManager();
+        mfsarchf = new Ogre::FileSystemArchiveFactory();
+        Ogre::ArchiveManager::getSingleton().addArchiveFactory( mfsarchf );
+
+        AssimpLoader loader;
+        loader.convert(opts.source);
 
     }
     catch(Ogre::Exception& e)
@@ -203,8 +242,11 @@ int main(int numargs, char** args)
     delete meshSerializer;
     delete skelMgr;
     delete matMgr;
-    delete meshMgr;
+    //delete meshMgr; FIX this!!
     delete bufferManager;
+    delete scmgr;
+    delete archmgr;
+    delete mfsarchf;
     delete lodMgr;
     delete mth;
     delete rgm;
