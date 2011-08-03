@@ -26,10 +26,10 @@
 
 Ogre::String toString(const aiColor4D& colour)
 {
-	return	Ogre::StringConverter::toString(colour.r) + " " +
-	Ogre::StringConverter::toString(colour.g) + " " +
-	Ogre::StringConverter::toString(colour.b) + " " +
-	Ogre::StringConverter::toString(colour.a);
+    return	Ogre::StringConverter::toString(Ogre::Real(colour.r)) + " " +
+    Ogre::StringConverter::toString(Ogre::Real(colour.g)) + " " +
+    Ogre::StringConverter::toString(Ogre::Real(colour.b)) + " " +
+    Ogre::StringConverter::toString(Ogre::Real(colour.a));
 }
 
 int AssimpLoader::msBoneCount = 0;
@@ -76,29 +76,7 @@ bool AssimpLoader::convert(const Ogre::String& filename,
     const aiScene *scene;
 
     Assimp::Importer importer;
-    //scene = importer.ReadFile( filename.c_str(), aiProcessPreset_TargetRealtime_Quality | aiProcess_TransformUVCoords | aiProcess_FlipUVs);
-
-	// by default remove points and lines from the model, since these are usually
-    // degenerate structures from bad modelling or bad import/export.  if they
-    // are needed it can be turned on with IncludeLinesPoints
-    int removeSortFlags = importer.GetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE);
-    removeSortFlags |= aiPrimitiveType_POINT | aiPrimitiveType_LINE;
-
-
-	// And have it read the given file with some example postprocessing
-	// Usually - if speed is not the most important aspect for you - you'll
-	// propably to request more postprocessing than we do in this example.
-	scene = importer.ReadFile(filename,
-							  0
-							  | aiProcess_JoinIdenticalVertices
-							  | aiProcess_RemoveRedundantMaterials
-							  | aiProcess_ImproveCacheLocality
-							  | aiProcess_LimitBoneWeights
-							  | aiProcess_FindDegenerates
-							  | aiProcess_SortByPType
-							  );
-
-
+    scene = importer.ReadFile( filename.c_str(), aiProcessPreset_TargetRealtime_Quality | aiProcess_TransformUVCoords | aiProcess_FlipUVs);
 
     // If the import failed, report it
 	if( !scene)
@@ -838,16 +816,16 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
 
 	aiColor4D c;
     if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_AMBIENT,  &c) == aiReturn_SUCCESS)
-        code += "\tset $ambient_value \"" + toString(c) + "\"\n";
+        code += "\t\t\tambient " + toString(c) + "\n";
 
     if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &c) == aiReturn_SUCCESS)
-        code += "\tset $diffuse_value \"" + toString(c) + "\"\n";
+        code += "\t\t\tdiffuse " + toString(c) + "\n";
 
     if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_SPECULAR, &c) == aiReturn_SUCCESS)
-        code += "\tset $specular_value \"" + toString(c) + "\"\n";
+        code += "\t\t\tspecular " + toString(c) + "\n";
 
     if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_EMISSIVE, &c) == aiReturn_SUCCESS)
-        code += "\tset $emissive_value \"" + toString(c) + "\"\n";
+        code += "\t\t\temmissive " + toString(c) + "\n";
 
 
 	// Specifies the type of the texture to be retrieved ( e.g. diffuse, specular, height map ...)
@@ -883,13 +861,14 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
 
 		Ogre::String texName = texBasename + "." + texExtention;
 
-		code += "\tset $diffuse_map " + texName + "\n";
+		//code += "\tset $diffuse_map " + texName + "\n";
+        code += "\n\t\t\ttexture_unit\n\t\t\t{\n\t\t\t\ttexture " + texName + "\n";
 
 		int twoSided = 0;
 		mat->Get(AI_MATKEY_TWOSIDED, twoSided);
 		if(twoSided != 0)
 		{
-			code += "set $cull_hardware_value none\n";
+            code += "\t\t\t\tcull_hardware none\n";
 		}
 
 		/*
@@ -909,22 +888,27 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
 		*/
 
 		// no infomation on the alpha channel in the texture will have to load the texture and look at it
+		code += "\t\t\t}\n";
 	}
 
 
 	//code = "material " + materialName + " : base\n{\n" + code + "}\n\n";
-    code = "material " + materialName + "\n{\n" + code + "}\n\n";
+	code = "material " + materialName + "\n{\n\ttechnique\n\t{\n\t\tpass\n\t\t{\n" + code + "\t\t}\n\t}\n}\n\n";
     mMaterialCode += code;
 
 	// compile the material
 	//code = "import * from base.material\n" + code;
 
+/*    std::cout << "-------------------------------------------code" << std::endl;
+    std::cout << code << std::endl;
+    std::cout << "-------------------------------------------code" << std::endl;*/
+
 	Ogre::DataStreamPtr stream(OGRE_NEW Ogre::MemoryDataStream(const_cast<void*>(static_cast<const void*>(code.c_str())),
 												   code.length() * sizeof(char), false));
 	Ogre::MaterialManager::getSingleton().parseScript(stream, Ogre::ResourceGroupManager::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
 	Ogre::MaterialPtr omat = Ogre::MaterialManager::getSingleton().getByName(materialName);
-	omat->compile();
-	omat->load();
+	//omat->compile(false);
+	//omat->load();
 
 	return omat;
 }
