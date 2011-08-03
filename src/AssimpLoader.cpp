@@ -184,7 +184,7 @@ bool AssimpLoader::convert(const Ogre::String& filename,
 
 
     // serialise the materials
-	if(mLoaderParams & !LP_GENERATE_MATERIALS_AS_CODE)
+    if((mLoaderParams & LP_GENERATE_MATERIALS_AS_CODE) == 0)
 	{
 		Ogre::MaterialSerializer ms;
 		std::vector<Ogre::String> exportedNames;
@@ -809,21 +809,18 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
 
 	Ogre::String code;
 
-	aiColor4D c(0.0f, 0.0f, 0.0f, 1.0);
-	aiGetMaterialColor(mat, AI_MATKEY_COLOR_AMBIENT,  &c);
-	code += "\tset $ambient_value \"" + toString(c) + "\"\n";
+	aiColor4D c;
+    if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_AMBIENT,  &c) == aiReturn_SUCCESS)
+        code += "\tset $ambient_value \"" + toString(c) + "\"\n";
 
-	c = aiColor4D(0.0f, 0.0f, 0.0f, 1.0f);
-	aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &c);
-	code += "\tset $diffuse_value \"" + toString(c) + "\"\n";
+    if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &c) == aiReturn_SUCCESS)
+        code += "\tset $diffuse_value \"" + toString(c) + "\"\n";
 
-	c = aiColor4D(0.0f, 0.0f, 0.0f, 1.0f);
-	aiGetMaterialColor(mat, AI_MATKEY_COLOR_SPECULAR, &c);
-	code += "\tset $specular_value \"" + toString(c) + "\"\n";
+    if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_SPECULAR, &c) == aiReturn_SUCCESS)
+        code += "\tset $specular_value \"" + toString(c) + "\"\n";
 
-	c = aiColor4D(0.0f, 0.0f, 0.0f, 1.0f);
-	aiGetMaterialColor(mat, AI_MATKEY_COLOR_EMISSIVE, &c);
-	code += "\tset $emissive_value \"" + toString(c) + "\"\n";
+    if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_EMISSIVE, &c) == aiReturn_SUCCESS)
+        code += "\tset $emissive_value \"" + toString(c) + "\"\n";
 
 
 	// Specifies the type of the texture to be retrieved ( e.g. diffuse, specular, height map ...)
@@ -940,7 +937,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
     Ogre::StringUtil::splitFilename(Ogre::String(szPath.data), basename, outPath);
     Ogre::LogManager::getSingleton().logMessage("Creating " + basename);
 
-	Ogre::ResourceManager::ResourceCreateOrRetrieveResult status = omatMgr->createOrRetrieve(ReplaceSpaces(basename), "General", true);
+    Ogre::ResourceManager::ResourceCreateOrRetrieveResult status = omatMgr->createOrRetrieve(ReplaceSpaces(basename), Ogre::ResourceGroupManager::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, true);
 	Ogre::MaterialPtr omat = status.first;
 	if (!status.second)
 		return omat;
@@ -996,7 +993,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
 		std::ifstream imgstream;
 		imgstream.open(path.data, std::ios::binary);
 		if(!imgstream.is_open())
-			imgstream.open(Ogre::String(mDir + Ogre::String("\\") + Ogre::String(path.data)).c_str(), std::ios::binary);
+			imgstream.open(Ogre::String(mPath + Ogre::String("\\") + Ogre::String(path.data)).c_str(), std::ios::binary);
 
 		if (imgstream.is_open())
 		{
@@ -1024,7 +1021,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
 			Ogre::LogManager::getSingleton().logMessage("Could not load texture, falling back to hotpink - 2");
 		}
 
-		Ogre::TextureManager::getSingleton().loadImage(Ogre::String(szPath.data), Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, image);
+/*		Ogre::TextureManager::getSingleton().loadImage(Ogre::String(szPath.data), Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, image);*/
         //TODO: save this to materials/textures ?
 		Ogre::TextureUnitState* texUnitState = omat->getTechnique(0)->getPass(0)->createTextureUnitState(basename);
 
@@ -1048,7 +1045,7 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
 
 	Ogre::MaterialPtr matptr;
 
-	if(mLoaderParams & !LP_GENERATE_MATERIALS_AS_CODE)
+	if((mLoaderParams & LP_GENERATE_MATERIALS_AS_CODE) == 0)
 	{
 		matptr = createMaterial(mesh->mMaterialIndex, mat, mDir);
 	}
@@ -1247,7 +1244,7 @@ void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode,
 		{
 			if(mMeshes.size() == 0)
 			{
-				mesh = Ogre::MeshManager::getSingleton().createManual("ROOTMesh", "General");
+                mesh = Ogre::MeshManager::getSingleton().createManual("ROOTMesh", Ogre::ResourceGroupManager::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
 
 				mMeshes.push_back(mesh);
 			}
