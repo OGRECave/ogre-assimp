@@ -43,28 +43,28 @@ struct AssOptions
 {
     Ogre::String source;
     Ogre::String dest;
-    Ogre::String sourceExt;
-    Ogre::String destExt;
     bool quietMode;
     Ogre::String logFile;
+    Ogre::String customAnimationName;
+    int params;
 };
 
 void help(void)
 {
     // Print help message
-    std::cout << std::endl << "OgreAssimpConverter: Converts data between XML and OGRE binary formats." << std::endl;
-    std::cout << "Provided for OGRE by Steve Streeting" << std::endl << std::endl;
-    std::cout << "Usage: OgreXMLConverter [options] sourcefile [destfile] " << std::endl;
+    std::cout << std::endl << "OgreAssimpConverter: Converts data from model formats supported by Assimp" << std::endl;
+    std::cout << "to OGRE binary formats (mesh and skeleton) and material script." << std::endl;
+    std::cout << std::endl << "Usage: OgreAssimpConverter [options] sourcefile [destination] " << std::endl;
     std::cout << std::endl << "Available options:" << std::endl;
-    std::cout << "-q             = Quiet mode, less output" << std::endl;
-    std::cout << "-log filename  = name of the log file (default: 'ass.log')" << std::endl;
-    std::cout << "sourcefile     = name of file to convert" << std::endl;
-    std::cout << "destfile       = optional name of file to write to. If you don't" << std::endl;
-    std::cout << "                 specify this OGRE works it out through the extension " << std::endl;
-    std::cout << "                 and the XML contents if the source is XML. For example" << std::endl;
-    std::cout << "                 test.mesh becomes test.xml, test.xml becomes test.mesh " << std::endl;
-    std::cout << "                 if the XML document root is <mesh> etc."  << std::endl;
-
+    std::cout << "-q            = Quiet mode, less output" << std::endl;
+    std::cout << "-log filename = name of the log file (default: 'ass.log')" << std::endl;
+    std::cout << "-3ds_ani_fix  = Fix for the fact that 3ds max exports the animation over a" << std::endl;
+    std::cout << "                longer time frame than the animation actually plays for" << std::endl;
+    std::cout << "-3ds_dae_fix  = When 3ds max exports as DAE it gets some of the transforms wrong, get around this" << std::endl;
+    std::cout << "                by using this option and a prior run with of the model exported as ASE" << std::endl;
+    std::cout << "sourcefile    = name of file to convert" << std::endl;
+    std::cout << "destination   = optional name of directory to write to. If you don't" << std::endl;
+    std::cout << "                 specify this the converter will use the same directory as the sourcefile."  << std::endl;
     std::cout << std::endl;
 }
 
@@ -73,6 +73,8 @@ AssOptions parseArgs(int numArgs, char **args)
     AssOptions opts;
     opts.quietMode = false;
     opts.logFile = "ass.log";
+    opts.customAnimationName = "";
+    opts.dest = "";
 
     // ignore program name
     char* source = 0;
@@ -83,7 +85,10 @@ AssOptions parseArgs(int numArgs, char **args)
     Ogre::BinaryOptionList binOpt;
 
     unOpt["-q"] = false;
+    unOpt["-3ds_ani_fix"] = false;
+    unOpt["-3ds_dae_fix"] = false;
     binOpt["-log"] = "ass.log";
+    binOpt["-aniName"] = "";
 
     int startIndex = Ogre::findCommandLineOpts(numArgs, args, unOpt, binOpt);
     Ogre::UnaryOptionList::iterator ui;
@@ -95,10 +100,29 @@ AssOptions parseArgs(int numArgs, char **args)
         opts.quietMode = true;
     }
 
+    opts.params = (AssimpLoader::LP_GENERATE_SINGLE_MESH | AssimpLoader::LP_GENERATE_MATERIALS_AS_CODE);
+
+    ui = unOpt.find("-3ds_ani_fix");
+    if (ui->second)
+    {
+        opts.params |= AssimpLoader::LP_CUT_ANIMATION_WHERE_NO_FURTHER_CHANGE;
+    }
+    ui = unOpt.find("-3ds_dae_fix");
+    if (ui->second)
+    {
+        opts.params |= AssimpLoader::LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS;
+    }
+
     bi = binOpt.find("-log");
     if (!bi->second.empty())
     {
         opts.logFile = bi->second;
+    }
+
+    bi = binOpt.find("-aniName");
+    if (!bi->second.empty())
+    {
+        opts.customAnimationName = bi->second;
     }
 
     // Source / dest
@@ -118,36 +142,12 @@ AssOptions parseArgs(int numArgs, char **args)
         help();
         exit(1);
     }
-    // Work out what kind of conversion this is
     opts.source = source;
-    Ogre::vector<Ogre::String>::type srcparts = Ogre::StringUtil::split(opts.source, ".");
-    Ogre::String& ext = srcparts.back();
-    Ogre::StringUtil::toLowerCase(ext);
-    opts.sourceExt = ext;
 
-    if (!dest)
-    {
-        if (opts.sourceExt == "xml")
-        {
-            // dest is source minus .xml
-            opts.dest = opts.source.substr(0, opts.source.size() - 4);
-        }
-        else
-        {
-            // dest is source + .xml
-            opts.dest = opts.source;
-            opts.dest.append(".xml");
-        }
-
-    }
-    else
+    if (dest)
     {
         opts.dest = dest;
     }
-    Ogre::vector<Ogre::String>::type dstparts = Ogre::StringUtil::split(opts.dest, ".");
-    ext = dstparts.back();
-    Ogre::StringUtil::toLowerCase(ext);
-    opts.destExt = ext;
 
     if (!opts.quietMode)
     {
@@ -155,7 +155,7 @@ AssOptions parseArgs(int numArgs, char **args)
         std::cout << "-- OPTIONS --" << std::endl;
 
         std::cout << "source file      = " << opts.source << std::endl;
-        std::cout << "destination file = " << opts.dest << std::endl;
+        std::cout << "destination      = " << opts.dest << std::endl;
         std::cout << "log file         = " << opts.logFile << std::endl;
 
         std::cout << "-- END OPTIONS --" << std::endl;
@@ -225,8 +225,11 @@ int main(int numargs, char** args)
         mfsarchf = new Ogre::FileSystemArchiveFactory();
         Ogre::ArchiveManager::getSingleton().addArchiveFactory( mfsarchf );
 
+        if(opts.quietMode)
+            opts.params |= AssimpLoader::LP_QUIET_MODE;
+
         AssimpLoader loader;
-        loader.convert(opts.source);
+        loader.convert(opts.source, opts.customAnimationName, opts.params, opts.dest);
 
     }
     catch(Ogre::Exception& e)

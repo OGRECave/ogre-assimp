@@ -32,8 +32,11 @@ public:
 
 		// when 3ds max exports as DAE it gets some of the transforms wrong, get around this by using
 		// this option and a prior run with of the model exported as ASE
-		LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS = 1<<3
-	};
+		LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS = 1<<3,
+
+        // Quiet mode - don't output anything
+        LP_QUIET_MODE = 1<<4
+    };
 
     AssimpLoader();
     virtual ~AssimpLoader();
@@ -41,7 +44,8 @@ public:
 	// customAnimationName is only applied if the skeleton only has one animation
     bool convert(const Ogre::String& filename,
 				 const Ogre::String& customAnimationName = "",
-				 int loaderParams = (LP_GENERATE_SINGLE_MESH | LP_GENERATE_MATERIALS_AS_CODE) );
+				 int loaderParams = (LP_GENERATE_SINGLE_MESH | LP_GENERATE_MATERIALS_AS_CODE),
+                 const Ogre::String& destination = "");
 
 	const Ogre::String& getBasename(){ return mBasename; }
 
@@ -83,6 +87,8 @@ private:
 	Ogre::SkeletonPtr mSkeleton;
 
 	static int msBoneCount;
+
+    bool mQuietMode;
 };
 
 #endif // __AssimpLoader_h__

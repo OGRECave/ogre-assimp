@@ -64,13 +64,11 @@ if (CMAKE_BUILD_TYPE STREQUAL "")
   set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Choose the type of build, options are: None (CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif ()
 
-#set(CMAKE_DEBUG_POSTFIX "_d")
-
 find_package(OGRE REQUIRED)
 
-#if(NOT "${OGRE_VERSION_NAME}" STREQUAL "Cthugha")
-#  message(SEND_ERROR "You need Ogre 1.7 Cthugha to build this.")
-#endif()
+if(NOT "${OGRE_VERSION_NAME}" STREQUAL "Byatis")
+  message(SEND_ERROR "You need Ogre 1.8 Byatis to build this.")
+endif()
 
 # Find Boost
 if (NOT OGRE_BUILD_PLATFORM_IPHONE)
@@ -125,3 +123,9 @@ add_executable(OgreAssimpConverter ${HDRS} ${SRCS})
 set_target_properties(OgreAssimpConverter PROPERTIES DEBUG_POSTFIX _d)
 
 target_link_libraries(OgreAssimpConverter ${OGRE_LIBRARIES} ${ASSIMP_LIBRARIES})
+
+if(UNIX)
+    install(TARGETS OgreAssimpConverter
+        RUNTIME DESTINATION bin
+        CONFIGURATIONS Release RelWithDebInfo Debug)
+endif(UNIX)
