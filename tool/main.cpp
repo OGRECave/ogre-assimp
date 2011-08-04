@@ -1,10 +1,18 @@
 /*
 -----------------------------------------------------------------------------
-This source file is part of OGRE
-    (Object-oriented Graphics Rendering Engine)
-For the latest info, see http://www.ogre3d.org/
+This source file is part of
+                                    _
+  ___   __ _ _ __ ___  __ _ ___ ___(_)_ __ ___  _ __
+ / _ \ / _` | '__/ _ \/ _` / __/ __| | '_ ` _ \| '_ \
+| (_) | (_| | | |  __/ (_| \__ \__ \ | | | | | | |_) |
+ \___/ \__, |_|  \___|\__,_|___/___/_|_| |_| |_| .__/
+       |___/                                   |_|
 
-Copyright (c) 2000-2009 Torus Knot Software Ltd
+For the latest info, see http://code.google.com/p/ogreassimp/
+
+Copyright (c) 2011 Jacob 'jacmoe' Moen
+
+Licensed under the MIT license:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
