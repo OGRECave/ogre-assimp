@@ -46,9 +46,11 @@ AssimpLoader::~AssimpLoader()
 bool AssimpLoader::convert(const Ogre::String& filename,
 						   const Ogre::String& customAnimationName,
 						   int loaderParams,
-                           const Ogre::String& filedest)
+                           const Ogre::String& filedest,
+                           const Ogre::Real animationSpeed)
 {
     mLoaderParams = loaderParams;
+    mAnimationSpeed = animationSpeed;
     mQuietMode = ((mLoaderParams & LP_QUIET_MODE) == 0) ? false : true;
     mCustomAnimationName = customAnimationName;
 	if ((mLoaderParams & LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS) == false)
@@ -155,7 +157,7 @@ bool AssimpLoader::convert(const Ogre::String& filename,
 			{
 				// Automatic
 						Ogre::VertexDeclaration* newDcl =
-							sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation());
+							sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation(), false); //FIXME: last arg should be false always??
 				if (*newDcl != *(sm->vertexData->vertexDeclaration))
 				{
 					// Usages don't matter here since we're only exporting
@@ -364,7 +366,9 @@ aiQuaternion getRotate(aiNodeAnim* node_anim, KeyframesMap& keyframes, Keyframes
 
 void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation* anim)
 {
-	// DefBonePose a matrix that represents the local bone transform (can build from Ogre bone components)
+    //TODO: use mAnimationSpeed to scale the animation speed!
+
+    // DefBonePose a matrix that represents the local bone transform (can build from Ogre bone components)
 	// PoseToKey a matrix representing the keyframe translation
 	// What assimp stores aiNodeAnim IS the decomposed form of the transform (DefBonePose * PoseToKey)
 	// To get PoseToKey which is what Ogre needs we'ed have to build the transform from components in

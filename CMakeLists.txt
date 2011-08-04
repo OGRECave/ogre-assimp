@@ -38,7 +38,15 @@ cmake_minimum_required(VERSION 2.8)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules;${CMAKE_MODULE_PATH}")
 
-project(OgreAssimpConverter)
+project(ogreassimp)
+
+set(OGREASSIMP_VERSION_STRING "1.1.4")
+set(OGREASSIMP_VERSION_STRING_MAJOR "1")
+set(OGREASSIMP_VERSION_STRING_MINOR "1")
+set(OGREASSIMP_VERSION_STRING_PATCH "4")
+
+set(abi_version ${OGREASSIMP_VERSION_STRING})
+
 
 if(WIN32)
     set(CMAKE_MODULE_PATH "$ENV{OGRE_HOME}/CMake/;${CMAKE_MODULE_PATH}")
@@ -66,9 +74,9 @@ endif ()
 
 find_package(OGRE REQUIRED)
 
-#if(NOT "${OGRE_VERSION_NAME}" STREQUAL "Byatis")
-#  message(SEND_ERROR "You need Ogre 1.8 Byatis to build this.")
-#endif()
+if(NOT "${OGRE_VERSION_NAME}" STREQUAL "Byatis")
+  message(SEND_ERROR "You need Ogre 1.8 Byatis to build this.")
+endif()
 
 # Find Boost
 if (NOT OGRE_BUILD_PLATFORM_IPHONE)
@@ -103,29 +111,7 @@ endif()
 
 find_package(ASSIMP REQUIRED)
 
-set(HDRS
-    ./include/AssimpLoader.h
-)
+add_subdirectory(src)
 
-set(SRCS
-    ./src/AssimpLoader.cpp
-    ./src/main.cpp
-)
+add_subdirectory(tool)
 
-include_directories( ${OIS_INCLUDE_DIRS}
-    ${OGRE_INCLUDE_DIRS}
-    ${ASSIMP_INCLUDE_DIRS}
-    "./include"
-)
-
-add_executable(OgreAssimpConverter ${HDRS} ${SRCS})
-
-set_target_properties(OgreAssimpConverter PROPERTIES DEBUG_POSTFIX _d)
-
-target_link_libraries(OgreAssimpConverter ${OGRE_LIBRARIES} ${ASSIMP_LIBRARIES})
-
-if(UNIX)
-    install(TARGETS OgreAssimpConverter
-        RUNTIME DESTINATION bin
-        CONFIGURATIONS Release RelWithDebInfo Debug)
-endif(UNIX)
