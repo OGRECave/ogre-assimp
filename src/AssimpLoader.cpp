@@ -509,7 +509,7 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
 			KeyframesMap::iterator it_end = keyframes.end();
 			for(it; it != it_end; ++it)
 			{
-				if(it->first < cutTime)	// or should it be <=
+				if(it->first <= cutTime)	// or should it be <=
 				{
 					aiVector3D aiTrans = getTranslate( node_anim, keyframes, it );
 

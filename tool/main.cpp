@@ -59,7 +59,7 @@ void help(void)
     std::cout << std::endl << "Available options:" << std::endl;
     std::cout << "-q            = Quiet mode, less output" << std::endl;
     std::cout << "-log filename = name of the log file (default: 'ass.log')" << std::endl;
-    std::cout << "-ani_speed    = Factor to scale the animation speed - defaults to '1.0f'" << std::endl;
+    std::cout << "-aniSpeed     = Factor to scale the animation speed - defaults to '1.0f'" << std::endl;
     std::cout << "-3ds_ani_fix  = Fix for the fact that 3ds max exports the animation over a" << std::endl;
     std::cout << "                longer time frame than the animation actually plays for" << std::endl;
     std::cout << "-3ds_dae_fix  = When 3ds max exports as DAE it gets some of the transforms wrong, get around this" << std::endl;
@@ -165,6 +165,7 @@ AssOptions parseArgs(int numArgs, char **args)
 
         std::cout << "source file      = " << opts.source << std::endl;
         std::cout << "destination      = " << opts.dest << std::endl;
+        std::cout << "animation speed  = " << opts.animationSpeed << std::endl;
         std::cout << "log file         = " << opts.logFile << std::endl;
 
         std::cout << "-- END OPTIONS --" << std::endl;
