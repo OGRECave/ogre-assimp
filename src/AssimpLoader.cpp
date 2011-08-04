@@ -796,16 +796,16 @@ void AssimpLoader::grabBoneNamesFromNode(const aiScene* mScene,  const aiNode *p
                         {
                             if(node->mName.data == pNode->mName.data)
                             {
-								// flagNodeAsNeeded(node->mName.data);
+								flagNodeAsNeeded(node->mName.data);
                                 // Set mSkeletonRootNode to this node, which is the same node as the one holding the mesh
-                                //mSkeletonRootNode = node;
+                                mSkeletonRootNode = node;
                                 break;
                             }
                             if(node->mName.data == pNode->mParent->mName.data)
                             {
-                                //flagNodeAsNeeded(node->mName.data);
+                                flagNodeAsNeeded(node->mName.data);
                                 // Set mSkeletonRootNode to this node, which is the parent node to the node holding the mesh
-                                //mSkeletonRootNode = node;
+                                mSkeletonRootNode = node;
                                 break;
                             }
 
