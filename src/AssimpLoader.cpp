@@ -195,9 +195,13 @@ bool AssimpLoader::convert(const Ogre::String& filename,
 			Ogre::SubMesh* sm = smIt.getNext();
 			if (!sm->useSharedVertices)
 			{
-				// Automatic
-						Ogre::VertexDeclaration* newDcl =
-							sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation(), false); //FIXME: last arg should be false always??
+#ifdef USING_BYATIS
+                Ogre::VertexDeclaration* newDcl =
+                    sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation(), false);
+#else
+                Ogre::VertexDeclaration* newDcl =
+                    sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation());
+#endif
 				if (*newDcl != *(sm->vertexData->vertexDeclaration))
 				{
 					// Usages don't matter here since we're only exporting
@@ -549,7 +553,7 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
 			KeyframesMap::iterator it_end = keyframes.end();
 			for(it; it != it_end; ++it)
 			{
-				if(it->first <= cutTime)	// or should it be <=
+				if(it->first < cutTime)	// or should it be <=
 				{
 					aiVector3D aiTrans = getTranslate( node_anim, keyframes, it );
 
@@ -797,15 +801,11 @@ void AssimpLoader::grabBoneNamesFromNode(const aiScene* mScene,  const aiNode *p
                             if(node->mName.data == pNode->mName.data)
                             {
 								flagNodeAsNeeded(node->mName.data);
-                                // Set mSkeletonRootNode to this node, which is the same node as the one holding the mesh
-                                mSkeletonRootNode = node;
                                 break;
                             }
                             if(node->mName.data == pNode->mParent->mName.data)
                             {
                                 flagNodeAsNeeded(node->mName.data);
-                                // Set mSkeletonRootNode to this node, which is the parent node to the node holding the mesh
-                                mSkeletonRootNode = node;
                                 break;
                             }
 

@@ -101,7 +101,7 @@ private:
     void parseAnimation (const aiScene* mScene, int index, aiAnimation* anim);
 	typedef std::map<Ogre::String, boneNode> boneMapType;
 	boneMapType boneMap;
-    aiNode* mSkeletonRootNode;
+    //aiNode* mSkeletonRootNode;
 	int mLoaderParams;
 	Ogre::String mBasename;
 	Ogre::String mPath;
