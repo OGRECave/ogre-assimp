@@ -66,9 +66,9 @@ endif ()
 
 find_package(OGRE REQUIRED)
 
-if(NOT "${OGRE_VERSION_NAME}" STREQUAL "Byatis")
-  message(SEND_ERROR "You need Ogre 1.8 Byatis to build this.")
-endif()
+#if(NOT "${OGRE_VERSION_NAME}" STREQUAL "Byatis")
+#  message(SEND_ERROR "You need Ogre 1.8 Byatis to build this.")
+#endif()
 
 # Find Boost
 if (NOT OGRE_BUILD_PLATFORM_IPHONE)

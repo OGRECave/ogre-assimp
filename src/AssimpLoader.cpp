@@ -51,7 +51,7 @@ bool AssimpLoader::convert(const Ogre::String& filename,
     mLoaderParams = loaderParams;
     mQuietMode = ((mLoaderParams & LP_QUIET_MODE) == 0) ? false : true;
     mCustomAnimationName = customAnimationName;
-	if (mLoaderParams & LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS == false)
+	if ((mLoaderParams & LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS) == false)
 	{
 		mNodeDerivedTransformByName.clear();
 	}
@@ -154,8 +154,8 @@ bool AssimpLoader::convert(const Ogre::String& filename,
 			if (!sm->useSharedVertices)
 			{
 				// Automatic
-				Ogre::VertexDeclaration* newDcl =
-                sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation(), false);
+						Ogre::VertexDeclaration* newDcl =
+							sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation());
 				if (*newDcl != *(sm->vertexData->vertexDeclaration))
 				{
 					// Usages don't matter here since we're only exporting
@@ -183,10 +183,10 @@ bool AssimpLoader::convert(const Ogre::String& filename,
 
 			// queue up the materials for serialise
 			Ogre::MaterialManager *mmptr = Ogre::MaterialManager::getSingletonPtr();
-			Ogre::Mesh::SubMeshIterator it = mMesh->getSubMeshIterator();
-			while(it.hasMoreElements())
+			Ogre::Mesh::SubMeshIterator smIt = mMesh->getSubMeshIterator();
+			while(smIt.hasMoreElements())
 			{
-				Ogre::SubMesh* sm = it.getNext();
+				Ogre::SubMesh* sm = smIt.getNext();
 				Ogre::String matName(sm->getMaterialName());
 				if (std::find(exportedNames.begin(), exportedNames.end(), matName) == exportedNames.end())
 				{
@@ -905,7 +905,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
 
 	Ogre::DataStreamPtr stream(OGRE_NEW Ogre::MemoryDataStream(const_cast<void*>(static_cast<const void*>(code.c_str())),
 												   code.length() * sizeof(char), false));
-	Ogre::MaterialManager::getSingleton().parseScript(stream, Ogre::ResourceGroupManager::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+	Ogre::MaterialManager::getSingleton().parseScript(stream, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
 	Ogre::MaterialPtr omat = Ogre::MaterialManager::getSingleton().getByName(materialName);
 	//omat->compile(false);
 	//omat->load();
@@ -957,7 +957,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
         Ogre::LogManager::getSingleton().logMessage("Creating " + basename);
     }
 
-    Ogre::ResourceManager::ResourceCreateOrRetrieveResult status = omatMgr->createOrRetrieve(ReplaceSpaces(basename), Ogre::ResourceGroupManager::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, true);
+    Ogre::ResourceManager::ResourceCreateOrRetrieveResult status = omatMgr->createOrRetrieve(ReplaceSpaces(basename), Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, true);
 	Ogre::MaterialPtr omat = status.first;
 	if (!status.second)
 		return omat;
@@ -1291,7 +1291,7 @@ void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode,
 		{
 			if(mMeshes.size() == 0)
 			{
-                mesh = Ogre::MeshManager::getSingleton().createManual("ROOTMesh", Ogre::ResourceGroupManager::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+                mesh = Ogre::MeshManager::getSingleton().createManual("ROOTMesh", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
 
 				mMeshes.push_back(mesh);
 			}
