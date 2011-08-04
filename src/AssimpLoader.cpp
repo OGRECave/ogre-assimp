@@ -59,10 +59,15 @@ bool AssimpLoader::convert(const Ogre::String& filename,
 	}
 
 	Ogre::String extension;
-	Ogre::StringUtil::splitFullFilename(filename, mBasename, extension, mPath);
+    Ogre::StringUtil::splitFullFilename(filename, mBasename, extension, mPath);
 	mBasename = mBasename + "_" + extension;
 
-	Assimp::DefaultLogger::create("asslogger.log",Assimp::Logger::VERBOSE);
+    if(!filedest.empty())
+    {
+        mPath = filedest + "/";
+    }
+
+    Assimp::DefaultLogger::create("asslogger.log",Assimp::Logger::VERBOSE);
 	Assimp::DefaultLogger::get()->info("Logging asses");
 
     if(!mQuietMode)
