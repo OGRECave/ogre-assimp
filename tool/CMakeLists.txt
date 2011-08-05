@@ -64,3 +64,11 @@ if(UNIX)
         CONFIGURATIONS Release RelWithDebInfo Debug)
 endif(UNIX)
 
+if(WIN32)
+    install(TARGETS OgreAssimpConverter
+        RUNTIME DESTINATION $ENV{OGRE_HOME}/bin/release
+        CONFIGURATIONS Release RelWithDebInfo)
+    install(TARGETS OgreAssimpConverter
+        RUNTIME DESTINATION $ENV{OGRE_HOME}/bin/debug
+        CONFIGURATIONS Debug)
+endif(WIN32)
