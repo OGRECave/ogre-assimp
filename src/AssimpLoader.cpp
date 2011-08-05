@@ -905,15 +905,15 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
 
 		Ogre::String texName = texBasename + "." + texExtention;
 
-		//code += "\tset $diffuse_map " + texName + "\n";
-        code += "\n\t\t\ttexture_unit\n\t\t\t{\n\t\t\t\ttexture " + texName + "\n";
-
 		int twoSided = 0;
 		mat->Get(AI_MATKEY_TWOSIDED, twoSided);
 		if(twoSided != 0)
 		{
             code += "\t\t\t\tcull_hardware none\n";
 		}
+
+		//code += "\tset $diffuse_map " + texName + "\n";
+        code += "\n\t\t\ttexture_unit\n\t\t\t{\n\t\t\t\ttexture " + texName + "\n";
 
 		/*
 		int blendFunc = 0;
