@@ -55,7 +55,7 @@ struct AssOptions
     Ogre::String logFile;
     Ogre::String customAnimationName;
     int params;
-    Ogre::Real animationSpeed;
+    Ogre::Real animationSpeedModifier;
 };
 
 void help(void)
@@ -65,16 +65,17 @@ void help(void)
     std::cout << "to OGRE binary formats (mesh and skeleton) and material script." << std::endl;
     std::cout << std::endl << "Usage: OgreAssimpConverter [options] sourcefile [destination] " << std::endl;
     std::cout << std::endl << "Available options:" << std::endl;
-    std::cout << "-q            = Quiet mode, less output" << std::endl;
-    std::cout << "-log filename = name of the log file (default: 'ass.log')" << std::endl;
-    std::cout << "-aniSpeedMod  = Factor to scale the animation speed - defaults to '1.0f'" << std::endl;
-    std::cout << "-3ds_ani_fix  = Fix for the fact that 3ds max exports the animation over a" << std::endl;
-    std::cout << "                longer time frame than the animation actually plays for" << std::endl;
-    std::cout << "-3ds_dae_fix  = When 3ds max exports as DAE it gets some of the transforms wrong, get around this" << std::endl;
-    std::cout << "                by using this option and a prior run with of the model exported as ASE" << std::endl;
-    std::cout << "sourcefile    = name of file to convert" << std::endl;
-    std::cout << "destination   = optional name of directory to write to. If you don't" << std::endl;
-    std::cout << "                 specify this the converter will use the same directory as the sourcefile."  << std::endl;
+    std::cout << "-q                  = Quiet mode, less output" << std::endl;
+    std::cout << "-log filename       = name of the log file (default: 'ass.log')" << std::endl;
+    std::cout << "-aniSpeedMod value  = Factor to scale the animation speed - (default: '1.0')" << std::endl;
+    std::cout << "                      (double between 0 and 1)" << std::endl;
+    std::cout << "-3ds_ani_fix        = Fix for the fact that 3ds max exports the animation over a" << std::endl;
+    std::cout << "                      longer time frame than the animation actually plays for" << std::endl;
+    std::cout << "-3ds_dae_fix        = When 3ds max exports as DAE it gets some of the transforms wrong, get around this" << std::endl;
+    std::cout << "                      by using this option and a prior run with of the model exported as ASE" << std::endl;
+    std::cout << "sourcefile            = name of file to convert" << std::endl;
+    std::cout << "destination           = optional name of directory to write to. If you don't" << std::endl;
+    std::cout << "                        specify this the converter will use the same directory as the sourcefile."  << std::endl;
     std::cout << std::endl;
 }
 
@@ -85,6 +86,7 @@ AssOptions parseArgs(int numArgs, char **args)
     opts.logFile = "ass.log";
     opts.customAnimationName = "";
     opts.dest = "";
+    opts.animationSpeedModifier = 1.0;
 
     // ignore program name
     char* source = 0;
@@ -133,7 +135,7 @@ AssOptions parseArgs(int numArgs, char **args)
     bi = binOpt.find("-aniSpeedMod");
     if (!bi->second.empty())
     {
-        opts.animationSpeed = Ogre::StringConverter::parseReal(bi->second);
+        opts.animationSpeedModifier = Ogre::StringConverter::parseReal(bi->second);
     }
 
     bi = binOpt.find("-aniName");
@@ -173,7 +175,7 @@ AssOptions parseArgs(int numArgs, char **args)
 
         std::cout << "source file               = " << opts.source << std::endl;
         std::cout << "destination               = " << opts.dest << std::endl;
-        std::cout << "animation speed modifier  = " << opts.animationSpeed << std::endl;
+        std::cout << "animation speed modifier  = " << opts.animationSpeedModifier << std::endl;
         std::cout << "log file                  = " << opts.logFile << std::endl;
 
         std::cout << "-- END OPTIONS --" << std::endl;
@@ -247,7 +249,7 @@ int main(int numargs, char** args)
             opts.params |= AssimpLoader::LP_QUIET_MODE;
 
         AssimpLoader loader;
-        loader.convert(opts.source, opts.customAnimationName, opts.params, opts.dest, opts.animationSpeed);
+        loader.convert(opts.source, opts.customAnimationName, opts.params, opts.dest, opts.animationSpeedModifier);
 
     }
     catch(Ogre::Exception& e)
