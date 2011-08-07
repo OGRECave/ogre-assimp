@@ -67,7 +67,7 @@ void help(void)
     std::cout << std::endl << "Available options:" << std::endl;
     std::cout << "-q            = Quiet mode, less output" << std::endl;
     std::cout << "-log filename = name of the log file (default: 'ass.log')" << std::endl;
-    std::cout << "-aniSpeed     = Factor to scale the animation speed - defaults to '1.0f'" << std::endl;
+    std::cout << "-aniSpeedMod  = Factor to scale the animation speed - defaults to '1.0f'" << std::endl;
     std::cout << "-3ds_ani_fix  = Fix for the fact that 3ds max exports the animation over a" << std::endl;
     std::cout << "                longer time frame than the animation actually plays for" << std::endl;
     std::cout << "-3ds_dae_fix  = When 3ds max exports as DAE it gets some of the transforms wrong, get around this" << std::endl;
@@ -99,7 +99,7 @@ AssOptions parseArgs(int numArgs, char **args)
     unOpt["-3ds_dae_fix"] = false;
     binOpt["-log"] = "ass.log";
     binOpt["-aniName"] = "";
-    binOpt["-aniSpeed"] = 1.0f;
+    binOpt["-aniSpeedMod"] = 1.0f;
 
     int startIndex = Ogre::findCommandLineOpts(numArgs, args, unOpt, binOpt);
     Ogre::UnaryOptionList::iterator ui;
@@ -130,7 +130,7 @@ AssOptions parseArgs(int numArgs, char **args)
         opts.logFile = bi->second;
     }
 
-    bi = binOpt.find("-aniSpeed");
+    bi = binOpt.find("-aniSpeedMod");
     if (!bi->second.empty())
     {
         opts.animationSpeed = Ogre::StringConverter::parseReal(bi->second);
@@ -171,10 +171,10 @@ AssOptions parseArgs(int numArgs, char **args)
         std::cout << std::endl;
         std::cout << "-- OPTIONS --" << std::endl;
 
-        std::cout << "source file      = " << opts.source << std::endl;
-        std::cout << "destination      = " << opts.dest << std::endl;
-        std::cout << "animation speed  = " << opts.animationSpeed << std::endl;
-        std::cout << "log file         = " << opts.logFile << std::endl;
+        std::cout << "source file               = " << opts.source << std::endl;
+        std::cout << "destination               = " << opts.dest << std::endl;
+        std::cout << "animation speed modifier  = " << opts.animationSpeed << std::endl;
+        std::cout << "log file                  = " << opts.logFile << std::endl;
 
         std::cout << "-- END OPTIONS --" << std::endl;
         std::cout << std::endl;

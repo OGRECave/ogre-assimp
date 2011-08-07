@@ -81,7 +81,7 @@ public:
                 const Ogre::String& customAnimationName = "",
                 int loaderParams = (LP_GENERATE_SINGLE_MESH | LP_GENERATE_MATERIALS_AS_CODE),
                 const Ogre::String& destination = "",
-                const Ogre::Real animationSpeed = 1.0f);
+                const Ogre::Real animationSpeedModifier = 1.0f);
 
     const Ogre::String& getBasename(){ return mBasename; }
 
@@ -125,7 +125,8 @@ private:
     static int msBoneCount;
 
     bool mQuietMode;
-    Ogre::Real mAnimationSpeed;
+    Ogre::Real mTicksPerSecond;
+    Ogre::Real mAnimationSpeedModifier;
 };
 
 #endif // __AssimpLoader_h__

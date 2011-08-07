@@ -82,10 +82,10 @@ bool AssimpLoader::convert(const Ogre::String& filename,
                         const Ogre::String& customAnimationName,
                         int loaderParams,
                         const Ogre::String& filedest,
-                        const Ogre::Real animationSpeed)
+                        const Ogre::Real animationSpeedModifier)
 {
+    mAnimationSpeedModifier = double(animationSpeedModifier);
     mLoaderParams = loaderParams;
-    mAnimationSpeed = animationSpeed;
     mQuietMode = ((mLoaderParams & LP_QUIET_MODE) == 0) ? false : true;
     mCustomAnimationName = customAnimationName;
     if ((mLoaderParams & LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS) == false)
@@ -165,6 +165,10 @@ bool AssimpLoader::convert(const Ogre::String& filename,
     if(!mSkeleton.isNull())
     {
 
+        if(!mQuietMode)
+        {
+            Ogre::LogManager::getSingleton().logMessage("Root bone: " + mSkeleton->getRootBone()->getName());
+        }
 
         unsigned short numBones = mSkeleton->getNumBones();
         unsigned short i;
@@ -312,7 +316,7 @@ template< typename T > void GetInterpolationIterators(KeyframesMap& keyframes,
     }
 }
 
-aiVector3D getTranslate(aiNodeAnim* node_anim, KeyframesMap& keyframes, KeyframesMap::iterator it)
+aiVector3D getTranslate(aiNodeAnim* node_anim, KeyframesMap& keyframes, KeyframesMap::iterator it, Ogre::Real ticksPerSecond)
 {
     aiVectorKey* translateKey = boost::get<0>(it->second);
     aiVector3D vect;
@@ -343,6 +347,7 @@ aiVector3D getTranslate(aiNodeAnim* node_anim, KeyframesMap& keyframes, Keyframe
         if(frontKey && backKey)
         {
             float prop = (it->first - frontKey->mTime) / (backKey->mTime - frontKey->mTime);
+            prop /= ticksPerSecond;
             vect = ((backKey->mValue - frontKey->mValue) * prop) + frontKey->mValue;
         }
 
@@ -359,7 +364,7 @@ aiVector3D getTranslate(aiNodeAnim* node_anim, KeyframesMap& keyframes, Keyframe
     return vect;
 }
 
-aiQuaternion getRotate(aiNodeAnim* node_anim, KeyframesMap& keyframes, KeyframesMap::iterator it)
+aiQuaternion getRotate(aiNodeAnim* node_anim, KeyframesMap& keyframes, KeyframesMap::iterator it, Ogre::Real ticksPerSecond)
 {
     aiQuatKey* rotationKey = boost::get<1>(it->second);
     aiQuaternion rot;
@@ -389,6 +394,7 @@ aiQuaternion getRotate(aiNodeAnim* node_anim, KeyframesMap& keyframes, Keyframes
         if(frontKey && backKey)
         {
             float prop = (it->first - frontKey->mTime) / (backKey->mTime - frontKey->mTime);
+            prop /= ticksPerSecond;
             aiQuaternion::Interpolate(rot, frontKey->mValue, backKey->mValue, prop);
         }
 
@@ -407,8 +413,6 @@ aiQuaternion getRotate(aiNodeAnim* node_anim, KeyframesMap& keyframes, Keyframes
 
 void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation* anim)
 {
-    //TODO: use mAnimationSpeed to scale the animation speed!
-
     // DefBonePose a matrix that represents the local bone transform (can build from Ogre bone components)
     // PoseToKey a matrix representing the keyframe translation
     // What assimp stores aiNodeAnim IS the decomposed form of the transform (DefBonePose * PoseToKey)
@@ -441,6 +445,8 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
         Ogre::LogManager::getSingleton().logMessage("channels = " + Ogre::StringConverter::toString(anim->mNumChannels));
     }
     Ogre::Animation* animation;
+    mTicksPerSecond = (0 == anim->mTicksPerSecond) ? 24 : anim->mTicksPerSecond;
+    mTicksPerSecond *= mAnimationSpeedModifier;
 
     float cutTime = 0.0;
     if(mLoaderParams & LP_CUT_ANIMATION_WHERE_NO_FURTHER_CHANGE)
@@ -458,6 +464,7 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
                 if( node_anim->mPositionKeys[i] != node_anim->mPositionKeys[i-1])
                 {
                     timePos = node_anim->mPositionKeys[i].mTime;
+                    timePos /= mTicksPerSecond;
                 }
             }
 
@@ -466,6 +473,7 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
                 if( node_anim->mRotationKeys[i] != node_anim->mRotationKeys[i-1])
                 {
                     timeRot = node_anim->mRotationKeys[i].mTime;
+                    timeRot /= mTicksPerSecond;
                 }
             }
 
@@ -478,10 +486,10 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
     else
     {
         cutTime = Ogre::Math::POS_INFINITY;
-        animation = mSkeleton->createAnimation(Ogre::String(animName), Ogre::Real(anim->mDuration));
+        animation = mSkeleton->createAnimation(Ogre::String(animName), Ogre::Real(anim->mDuration/mTicksPerSecond));
     }
 
-    animation->setInterpolationMode(Ogre::Animation::IM_LINEAR);
+    animation->setInterpolationMode(Ogre::Animation::IM_LINEAR); //FIXME: Is this always true?
 
     if(!mQuietMode)
     {
@@ -517,32 +525,32 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
 
             for(int i = 0; i < node_anim->mNumPositionKeys; i++)
             {
-                keyframes[ node_anim->mPositionKeys[i].mTime ] = KeyframeData( &(node_anim->mPositionKeys[i]), NULL, NULL);
+                keyframes[ node_anim->mPositionKeys[i].mTime / mTicksPerSecond ] = KeyframeData( &(node_anim->mPositionKeys[i]), NULL, NULL);
             }
 
             for(int i = 0; i < node_anim->mNumRotationKeys; i++)
             {
-                KeyframesMap::iterator it = keyframes.find(node_anim->mRotationKeys[i].mTime);
+                KeyframesMap::iterator it = keyframes.find(node_anim->mRotationKeys[i].mTime / mTicksPerSecond);
                 if(it != keyframes.end())
                 {
                     boost::get<1>(it->second) = &(node_anim->mRotationKeys[i]);
                 }
                 else
                 {
-                    keyframes[ node_anim->mRotationKeys[i].mTime ] = KeyframeData( NULL, &(node_anim->mRotationKeys[i]), NULL );
+                    keyframes[ node_anim->mRotationKeys[i].mTime / mTicksPerSecond ] = KeyframeData( NULL, &(node_anim->mRotationKeys[i]), NULL );
                 }
             }
 
             for(int i = 0; i < node_anim->mNumScalingKeys; i++)
             {
-                KeyframesMap::iterator it = keyframes.find(node_anim->mScalingKeys[i].mTime);
+                KeyframesMap::iterator it = keyframes.find(node_anim->mScalingKeys[i].mTime / mTicksPerSecond);
                 if(it != keyframes.end())
                 {
                     boost::get<2>(it->second) = &(node_anim->mScalingKeys[i]);
                 }
                 else
                 {
-                    keyframes[ node_anim->mRotationKeys[i].mTime ] = KeyframeData( NULL, NULL, &(node_anim->mScalingKeys[i]) );
+                    keyframes[ node_anim->mRotationKeys[i].mTime / mTicksPerSecond ] = KeyframeData( NULL, NULL, &(node_anim->mScalingKeys[i]) );
                 }
             }
 
@@ -552,11 +560,11 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
             {
                 if(it->first < cutTime)	// or should it be <=
                 {
-                    aiVector3D aiTrans = getTranslate( node_anim, keyframes, it );
+                    aiVector3D aiTrans = getTranslate( node_anim, keyframes, it, mTicksPerSecond);
 
                     Ogre::Vector3 trans(aiTrans.x, aiTrans.y, aiTrans.z);
 
-                    aiQuaternion aiRot = getRotate(node_anim, keyframes, it);
+                    aiQuaternion aiRot = getRotate(node_anim, keyframes, it, mTicksPerSecond);
                     Ogre::Quaternion rot(aiRot.w, aiRot.x, aiRot.y, aiRot.z);
                     Ogre::Vector3 scale(1,1,1);	// ignore scale for now
 
