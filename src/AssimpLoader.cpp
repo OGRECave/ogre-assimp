@@ -33,8 +33,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-#include "AssimpLoader.h"
-#include "assimp/DefaultLogger.h"
+#include "assimp/Importer.hpp"
+#include "assimp/DefaultLogger.hpp"
 #include "OgreDataStream.h"
 #include "OgreImage.h"
 #include "OgreTexture.h"

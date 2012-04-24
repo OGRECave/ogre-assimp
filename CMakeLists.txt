@@ -59,7 +59,7 @@ if(UNIX)
 
     else ()
       message(SEND_ERROR "Failed to find module path.")
-    endif(EXISTS "/usr/local/lib/OGRE")
+    endif()
 endif(UNIX)
 
 if (CMAKE_BUILD_TYPE STREQUAL "")
