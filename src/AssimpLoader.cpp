@@ -35,6 +35,7 @@ THE SOFTWARE.
 */
 #include "AssimpLoader.h"
 #include "assimp/Importer.hpp"
+//#include "assimp/DefaultLogger.h"
 #include "assimp/DefaultLogger.hpp"
 #include "OgreDataStream.h"
 #include "OgreImage.h"

@@ -28,6 +28,7 @@ clear_if_changed(ASSIMP_PREFIX_PATH
 set(ASSIMP_LIBRARY_NAMES assimp)
 get_debug_names(ASSIMP_LIBRARY_NAMES)
 
+#use_pkgconfig(ASSIMP_PKGC ASSIMP)
 use_pkgconfig(ASSIMP assimp)
 
 findpkg_framework(ASSIMP)

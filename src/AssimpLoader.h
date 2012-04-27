@@ -38,6 +38,9 @@ THE SOFTWARE.
 
 #include <string>
 #include <OgreMesh.h>
+//#include <assimp/assimp.hpp>
+//#include <assimp/aiScene.h>
+//#include <assimp/aiPostProcess.h>
 #include "assimp/Importer.hpp"
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
