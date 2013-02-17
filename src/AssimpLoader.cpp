@@ -201,7 +201,7 @@ bool AssimpLoader::convert(const Ogre::String& filename,
             Ogre::SubMesh* sm = smIt.getNext();
             if (!sm->useSharedVertices)
             {
-#ifdef USING_BYATIS
+#if (OGRE_VERSION >  ((1 << 16) | (7 << 8) | 0))
                 Ogre::VertexDeclaration* newDcl =
                     sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation(), false);
 #else
@@ -876,7 +876,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
         code += "\t\t\tspecular " + toString(c) + "\n";
 
     if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_EMISSIVE, &c) == aiReturn_SUCCESS)
-        code += "\t\t\temmissive " + toString(c) + "\n";
+        code += "\t\t\temissive " + toString(c) + "\n";
 
 
     // Specifies the type of the texture to be retrieved ( e.g. diffuse, specular, height map ...)
