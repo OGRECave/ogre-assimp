@@ -8,7 +8,7 @@ This source file is part of
  \___/ \__, |_|  \___|\__,_|___/___/_|_| |_| |_| .__/
        |___/                                   |_|
 
-For the latest info, see http://code.google.com/p/ogreassimp/
+For the latest info, see https://bitbucket.org/jacmoe/ogreassimp
 
 Copyright (c) 2011 Jacob 'jacmoe' Moen
 
@@ -49,17 +49,6 @@ THE SOFTWARE.
 
 #include "AssimpLoader.h"
 
-struct AssOptions
-{
-    Ogre::String source;
-    Ogre::String dest;
-    bool quietMode;
-    Ogre::String logFile;
-    Ogre::String customAnimationName;
-    int params;
-    Ogre::Real animationSpeedModifier;
-};
-
 void help(void)
 {
     // Print help message
@@ -75,20 +64,32 @@ void help(void)
     std::cout << "                      longer time frame than the animation actually plays for" << std::endl;
     std::cout << "-3ds_dae_fix        = When 3ds max exports as DAE it gets some of the transforms wrong, get around this" << std::endl;
     std::cout << "                      by using this option and a prior run with of the model exported as ASE" << std::endl;
-    std::cout << "sourcefile            = name of file to convert" << std::endl;
-    std::cout << "destination           = optional name of directory to write to. If you don't" << std::endl;
-    std::cout << "                        specify this the converter will use the same directory as the sourcefile."  << std::endl;
+    std::cout << "-shader             = create shader based materials" << std::endl;
+    std::cout << "-shadows            = set receive shadows = on in material script" << std::endl;
+    std::cout << "-l lodlevels        = number of LOD levels" << std::endl;
+    std::cout << "-v lodvalue         = value increment to reduce LOD" << std::endl;
+    std::cout << "-s lodstrategy      = LOD strategy to use for this mesh" << std::endl;
+    std::cout << "-p lodpercent       = Percentage triangle reduction amount per LOD" << std::endl;
+    std::cout << "-f lodnumtris       = Fixed vertex reduction per LOD" << std::endl;
+    std::cout << "sourcefile          = name of file to convert" << std::endl;
+    std::cout << "destination         = optional name of directory to write to. If you don't" << std::endl;
+    std::cout << "                      specify this the converter will use the same directory as the sourcefile."  << std::endl;
     std::cout << std::endl;
 }
 
-AssOptions parseArgs(int numArgs, char **args)
+AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
 {
-    AssOptions opts;
+    AssimpLoader::AssOptions opts;
     opts.quietMode = false;
     opts.logFile = "ass.log";
     opts.customAnimationName = "";
     opts.dest = "";
     opts.animationSpeedModifier = 1.0;
+    opts.lodValue = 250000;
+    opts.lodFixed = 0;
+    opts.lodPercent = 20;
+    opts.numLods = 0;
+    opts.usePercent = true;
 
     // ignore program name
     char* source = 0;
@@ -101,22 +102,27 @@ AssOptions parseArgs(int numArgs, char **args)
     unOpt["-q"] = false;
     unOpt["-3ds_ani_fix"] = false;
     unOpt["-3ds_dae_fix"] = false;
+    unOpt["-shader"] = false;
     binOpt["-log"] = "ass.log";
     binOpt["-aniName"] = "";
     binOpt["-aniSpeedMod"] = 1.0f;
+    binOpt["-l"] = "";
+    binOpt["-v"] = "";
+    binOpt["-s"] = "Distance";
+    binOpt["-p"] = "";
+    binOpt["-f"] = "";
 
     int startIndex = Ogre::findCommandLineOpts(numArgs, args, unOpt, binOpt);
     Ogre::UnaryOptionList::iterator ui;
     Ogre::BinaryOptionList::iterator bi;
+
+    opts.params = (AssimpLoader::LP_GENERATE_SINGLE_MESH | AssimpLoader::LP_GENERATE_MATERIALS_AS_CODE);
 
     ui = unOpt.find("-q");
     if (ui->second)
     {
         opts.quietMode = true;
     }
-
-    opts.params = (AssimpLoader::LP_GENERATE_SINGLE_MESH | AssimpLoader::LP_GENERATE_MATERIALS_AS_CODE);
-
     ui = unOpt.find("-3ds_ani_fix");
     if (ui->second)
     {
@@ -127,23 +133,53 @@ AssOptions parseArgs(int numArgs, char **args)
     {
         opts.params |= AssimpLoader::LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS;
     }
+    ui = unOpt.find("-shader");
+    if (ui->second)
+    {
+        opts.params |= AssimpLoader::LP_GENERATE_SHADER_MATERIALS;
+    }
 
     bi = binOpt.find("-log");
     if (!bi->second.empty())
     {
         opts.logFile = bi->second;
     }
-
     bi = binOpt.find("-aniSpeedMod");
     if (!bi->second.empty())
     {
         opts.animationSpeedModifier = Ogre::StringConverter::parseReal(bi->second);
     }
-
     bi = binOpt.find("-aniName");
     if (!bi->second.empty())
     {
         opts.customAnimationName = bi->second;
+    }
+    bi = binOpt.find("-l");
+    if (!bi->second.empty())
+    {
+        opts.numLods = Ogre::StringConverter::parseInt(bi->second);
+    }
+    bi = binOpt.find("-v");
+    if (!bi->second.empty())
+    {
+        opts.lodValue = Ogre::StringConverter::parseReal(bi->second);
+    }
+    bi = binOpt.find("-s");
+    if (!bi->second.empty())
+    {
+        opts.lodStrategy = bi->second;
+    }
+    bi = binOpt.find("-p");
+    if (!bi->second.empty())
+    {
+        opts.lodPercent = Ogre::StringConverter::parseReal(bi->second);
+        opts.usePercent = true;
+    }
+    bi = binOpt.find("-f");
+    if (!bi->second.empty())
+    {
+        opts.lodFixed = Ogre::StringConverter::parseInt(bi->second);
+        opts.usePercent = false;
     }
 
     // Source / dest
@@ -224,7 +260,7 @@ int main(int numargs, char** args)
         // this log catches output from the parseArgs call and routes it to stdout only
         logMgr->createLog("Temporary log", false, true, true);
 
-        AssOptions opts = parseArgs(numargs, args);
+        AssimpLoader::AssOptions opts = parseArgs(numargs, args);
         // use the log specified by the cmdline params
         logMgr->setDefaultLog(logMgr->createLog(opts.logFile, false, true));
         // get rid of the temporary log as we use the new log now
@@ -251,7 +287,7 @@ int main(int numargs, char** args)
             opts.params |= AssimpLoader::LP_QUIET_MODE;
 
         AssimpLoader loader;
-        loader.convert(opts.source, opts.customAnimationName, opts.params, opts.dest, opts.animationSpeedModifier);
+        loader.convert(opts);
 
     }
     catch(Ogre::Exception& e)

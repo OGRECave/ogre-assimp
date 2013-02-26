@@ -8,7 +8,7 @@
 #  \___/ \__, |_|  \___|\__,_|___/___/_|_| |_| |_| .__/
 #        |___/                                   |_|
 #
-# For the latest info, see http://code.google.com/p/ogreassimp/
+# For the latest info, see https://bitbucket.org/jacmoe/ogreassimp
 #
 # Copyright (c) 2011 Jacob 'jacmoe' Moen
 #

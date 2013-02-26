@@ -8,7 +8,7 @@ This source file is part of
  \___/ \__, |_|  \___|\__,_|___/___/_|_| |_| |_| .__/
        |___/                                   |_|
 
-For the latest info, see http://code.google.com/p/ogreassimp/
+For the latest info, see https://bitbucket.org/jacmoe/ogreassimp
 
 Copyright (c) 2011 Jacob 'jacmoe' Moen
 
@@ -58,15 +58,19 @@ THE SOFTWARE.
 #include "OgreAnimation.h"
 #include "OgreAnimationTrack.h"
 #include "OgreKeyFrame.h"
+#include "OgreLodConfig.h"
+#include "OgreLodStrategyManager.h"
+#include "OgreDistanceLodStrategy.h"
+#include "OgreProgressiveMeshGenerator.h"
 #include <boost/tuple/tuple.hpp>
 //#include "OgreXMLSkeletonSerializer.h"
 
 Ogre::String toString(const aiColor4D& colour)
 {
-    return	Ogre::StringConverter::toString(Ogre::Real(colour.r)) + " " +
-    Ogre::StringConverter::toString(Ogre::Real(colour.g)) + " " +
-    Ogre::StringConverter::toString(Ogre::Real(colour.b)) + " " +
-    Ogre::StringConverter::toString(Ogre::Real(colour.a));
+    return Ogre::StringConverter::toString(Ogre::Real(colour.r)) + " " +
+        Ogre::StringConverter::toString(Ogre::Real(colour.g)) + " " +
+        Ogre::StringConverter::toString(Ogre::Real(colour.b)) + " " +
+        Ogre::StringConverter::toString(Ogre::Real(colour.a));
 }
 
 int AssimpLoader::msBoneCount = 0;
@@ -80,28 +84,24 @@ AssimpLoader::~AssimpLoader()
 {
 }
 
-bool AssimpLoader::convert(const Ogre::String& filename,
-                        const Ogre::String& customAnimationName,
-                        int loaderParams,
-                        const Ogre::String& filedest,
-                        const Ogre::Real animationSpeedModifier)
+bool AssimpLoader::convert(const AssOptions options)
 {
-    mAnimationSpeedModifier = double(animationSpeedModifier);
-    mLoaderParams = loaderParams;
+    mAnimationSpeedModifier = options.animationSpeedModifier;
+    mLoaderParams = options.params;
     mQuietMode = ((mLoaderParams & LP_QUIET_MODE) == 0) ? false : true;
-    mCustomAnimationName = customAnimationName;
+    mCustomAnimationName = options.customAnimationName;
     if ((mLoaderParams & LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS) == false)
     {
         mNodeDerivedTransformByName.clear();
     }
 
     Ogre::String extension;
-    Ogre::StringUtil::splitFullFilename(filename, mBasename, extension, mPath);
+    Ogre::StringUtil::splitFullFilename(options.source, mBasename, extension, mPath);
     mBasename = mBasename + "_" + extension;
 
-    if(!filedest.empty())
+    if(!options.dest.empty())
     {
-        mPath = filedest + "/";
+        mPath = options.dest + "/";
     }
 
     Assimp::DefaultLogger::create("asslogger.log",Assimp::Logger::VERBOSE);
@@ -110,7 +110,7 @@ bool AssimpLoader::convert(const Ogre::String& filename,
     if(!mQuietMode)
     {
         Ogre::LogManager::getSingleton().logMessage("*** Loading ass file... ***");
-        Ogre::LogManager::getSingleton().logMessage("Filename " + filename);
+        Ogre::LogManager::getSingleton().logMessage("Filename " + options.source);
     }
     Ogre::ResourceGroupManager::getSingleton().addResourceLocation(mPath, "FileSystem");
     Ogre::ResourceGroupManager::getSingleton().addResourceLocation("./resources", "FileSystem");
@@ -120,7 +120,7 @@ bool AssimpLoader::convert(const Ogre::String& filename,
     const aiScene *scene;
 
     Assimp::Importer importer;
-    scene = importer.ReadFile( filename.c_str(), aiProcessPreset_TargetRealtime_Quality | aiProcess_TransformUVCoords | aiProcess_FlipUVs);
+    scene = importer.ReadFile(options.source.c_str(), aiProcessPreset_TargetRealtime_Quality | aiProcess_TransformUVCoords | aiProcess_FlipUVs);
 
     // If the import failed, report it
     if( !scene)
@@ -149,7 +149,7 @@ bool AssimpLoader::convert(const Ogre::String& filename,
 
         if(scene->HasAnimations())
         {
-            for(int i = 0; i < scene->mNumAnimations; ++i)
+            for(unsigned int i = 0; i < scene->mNumAnimations; ++i)
             {
                 parseAnimation(scene, i, scene->mAnimations[i]);
             }
@@ -218,9 +218,45 @@ bool AssimpLoader::convert(const Ogre::String& filename,
                 }
             }
         }
+
+        if (options.numLods > 0)
+        {
+            unsigned short numLod;
+            Ogre::LodConfig lodConfig;
+            lodConfig.levels.clear();
+            lodConfig.mesh = mMesh->clone(mMesh->getName());
+            lodConfig.strategy = Ogre::DistanceLodStrategy::getSingletonPtr();
+
+            Ogre::LodLevel lodLevel;
+            lodLevel.reductionMethod = Ogre::LodLevel::VRM_PROPORTIONAL;
+
+            numLod = options.numLods;
+            if (options.usePercent)
+            {
+                lodLevel.reductionMethod = Ogre::LodLevel::VRM_PROPORTIONAL;
+                lodLevel.reductionValue = options.lodPercent * 0.01f;
+            }
+            else
+            {
+                lodLevel.reductionMethod = Ogre::LodLevel::VRM_CONSTANT;
+                lodLevel.reductionValue = (Ogre::Real)options.lodFixed;
+            }
+            Ogre::Real currDist = 0;
+            for (unsigned short iLod = 0; iLod < numLod; ++iLod)
+            {
+                currDist += options.lodValue;
+                Ogre::Real currDistSq = Ogre::Math::Sqr(currDist);
+                lodLevel.distance = currDistSq;
+                lodConfig.levels.push_back(lodLevel);
+            }
+
+            mMesh->setLodStrategy(Ogre::LodStrategyManager::getSingleton().getStrategy(options.lodStrategy));
+            Ogre::ProgressiveMeshGenerator pm;
+            pm.generateLodLevels(lodConfig);
+        }
+
         meshSer.exportMesh(mMesh.getPointer(), mPath + mBasename + ".mesh");
     }
-
 
 
     // serialise the materials
@@ -282,7 +318,7 @@ bool AssimpLoader::convert(const Ogre::String& filename,
 
 
 typedef boost::tuple< aiVectorKey*, aiQuatKey*, aiVectorKey* > KeyframeData;
-typedef std::map< float, KeyframeData > KeyframesMap;
+typedef std::map< Ogre::Real, KeyframeData > KeyframesMap;
 
 template <int v>
 struct Int2Type
@@ -348,7 +384,7 @@ aiVector3D getTranslate(aiNodeAnim* node_anim, KeyframesMap& keyframes, Keyframe
         // got 2 keys can interpolate
         if(frontKey && backKey)
         {
-            float prop = (it->first - frontKey->mTime) / (backKey->mTime - frontKey->mTime);
+            float prop = (float)(((double)it->first - frontKey->mTime) / (backKey->mTime - frontKey->mTime));
             prop /= ticksPerSecond;
             vect = ((backKey->mValue - frontKey->mValue) * prop) + frontKey->mValue;
         }
@@ -395,7 +431,7 @@ aiQuaternion getRotate(aiNodeAnim* node_anim, KeyframesMap& keyframes, Keyframes
         // got 2 keys can interpolate
         if(frontKey && backKey)
         {
-            float prop = (it->first - frontKey->mTime) / (backKey->mTime - frontKey->mTime);
+            float prop = (float)(((double)it->first - frontKey->mTime) / (backKey->mTime - frontKey->mTime));
             prop /= ticksPerSecond;
             aiQuaternion::Interpolate(rot, frontKey->mValue, backKey->mValue, prop);
         }
@@ -447,10 +483,10 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
         Ogre::LogManager::getSingleton().logMessage("channels = " + Ogre::StringConverter::toString(anim->mNumChannels));
     }
     Ogre::Animation* animation;
-    mTicksPerSecond = (0 == anim->mTicksPerSecond) ? 24 : anim->mTicksPerSecond;
+    mTicksPerSecond = (Ogre::Real)((0 == anim->mTicksPerSecond) ? 24 : anim->mTicksPerSecond);
     mTicksPerSecond *= mAnimationSpeedModifier;
 
-    float cutTime = 0.0;
+    Ogre::Real cutTime = 0.0;
     if(mLoaderParams & LP_CUT_ANIMATION_WHERE_NO_FURTHER_CHANGE)
     {
         for (int i = 1; i < (int)anim->mNumChannels; i++)
@@ -458,23 +494,23 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
             aiNodeAnim* node_anim = anim->mChannels[i];
 
             // times of the equality check
-            float timePos = 0.0;
-            float timeRot = 0.0;
+            Ogre::Real timePos = 0.0;
+            Ogre::Real timeRot = 0.0;
 
-            for(int i = 1; i < node_anim->mNumPositionKeys; i++)
+            for(unsigned int i = 1; i < node_anim->mNumPositionKeys; i++)
             {
                 if( node_anim->mPositionKeys[i] != node_anim->mPositionKeys[i-1])
                 {
-                    timePos = node_anim->mPositionKeys[i].mTime;
+                    timePos = (Ogre::Real)node_anim->mPositionKeys[i].mTime;
                     timePos /= mTicksPerSecond;
                 }
             }
 
-            for(int i = 1; i < node_anim->mNumRotationKeys; i++)
+            for(unsigned int i = 1; i < node_anim->mNumRotationKeys; i++)
             {
                 if( node_anim->mRotationKeys[i] != node_anim->mRotationKeys[i-1])
                 {
-                    timeRot = node_anim->mRotationKeys[i].mTime;
+                    timeRot = (Ogre::Real)node_anim->mRotationKeys[i].mTime;
                     timeRot /= mTicksPerSecond;
                 }
             }
@@ -483,7 +519,7 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
             if(timeRot > cutTime){ cutTime = timeRot; }
         }
 
-        animation = mSkeleton->createAnimation(Ogre::String(animName), Ogre::Real(cutTime));
+        animation = mSkeleton->createAnimation(Ogre::String(animName), cutTime);
     }
     else
     {
@@ -525,34 +561,34 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
             // Ogre needs translate rotate and scale for each keyframe in the track
             KeyframesMap keyframes;
 
-            for(int i = 0; i < node_anim->mNumPositionKeys; i++)
+            for(unsigned int i = 0; i < node_anim->mNumPositionKeys; i++)
             {
-                keyframes[ node_anim->mPositionKeys[i].mTime / mTicksPerSecond ] = KeyframeData( &(node_anim->mPositionKeys[i]), NULL, NULL);
+                keyframes[ (Ogre::Real)node_anim->mPositionKeys[i].mTime / mTicksPerSecond ] = KeyframeData( &(node_anim->mPositionKeys[i]), NULL, NULL);
             }
 
-            for(int i = 0; i < node_anim->mNumRotationKeys; i++)
+            for(unsigned int i = 0; i < node_anim->mNumRotationKeys; i++)
             {
-                KeyframesMap::iterator it = keyframes.find(node_anim->mRotationKeys[i].mTime / mTicksPerSecond);
+                KeyframesMap::iterator it = keyframes.find((Ogre::Real)node_anim->mRotationKeys[i].mTime / mTicksPerSecond);
                 if(it != keyframes.end())
                 {
                     boost::get<1>(it->second) = &(node_anim->mRotationKeys[i]);
                 }
                 else
                 {
-                    keyframes[ node_anim->mRotationKeys[i].mTime / mTicksPerSecond ] = KeyframeData( NULL, &(node_anim->mRotationKeys[i]), NULL );
+                    keyframes[ (Ogre::Real)node_anim->mRotationKeys[i].mTime / mTicksPerSecond ] = KeyframeData( NULL, &(node_anim->mRotationKeys[i]), NULL );
                 }
             }
 
-            for(int i = 0; i < node_anim->mNumScalingKeys; i++)
+            for(unsigned int i = 0; i < node_anim->mNumScalingKeys; i++)
             {
-                KeyframesMap::iterator it = keyframes.find(node_anim->mScalingKeys[i].mTime / mTicksPerSecond);
+                KeyframesMap::iterator it = keyframes.find((Ogre::Real)node_anim->mScalingKeys[i].mTime / mTicksPerSecond);
                 if(it != keyframes.end())
                 {
                     boost::get<2>(it->second) = &(node_anim->mScalingKeys[i]);
                 }
                 else
                 {
-                    keyframes[ node_anim->mRotationKeys[i].mTime / mTicksPerSecond ] = KeyframeData( NULL, NULL, &(node_anim->mScalingKeys[i]) );
+                    keyframes[ (Ogre::Real)node_anim->mRotationKeys[i].mTime / mTicksPerSecond ] = KeyframeData( NULL, NULL, &(node_anim->mScalingKeys[i]) );
                 }
             }
 
@@ -596,7 +632,6 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
     } // loop through channels
 
     mSkeleton->optimiseAllAnimations();
-
 }
 
 
@@ -605,7 +640,7 @@ void AssimpLoader::markAllChildNodesAsNeeded(const aiNode *pNode)
 {
     flagNodeAsNeeded(pNode->mName.data);
     // Traverse all child nodes of the current node instance
-    for ( int childIdx=0; childIdx<pNode->mNumChildren; ++childIdx )
+    for ( unsigned int childIdx=0; childIdx<pNode->mNumChildren; ++childIdx )
     {
         const aiNode *pChildNode = pNode->mChildren[ childIdx ];
         markAllChildNodesAsNeeded(pChildNode);
@@ -629,7 +664,7 @@ void AssimpLoader::grabNodeNamesFromNode(const aiScene* mScene, const aiNode* pN
     }
 
     // Traverse all child nodes of the current node instance
-    for ( int childIdx=0; childIdx<pNode->mNumChildren; ++childIdx )
+    for ( unsigned int childIdx=0; childIdx<pNode->mNumChildren; ++childIdx )
     {
         const aiNode *pChildNode = pNode->mChildren[ childIdx ];
         grabNodeNamesFromNode(mScene, pChildNode);
@@ -643,7 +678,7 @@ void AssimpLoader::computeNodesDerivedTransform(const aiScene* mScene,  const ai
     {
         mNodeDerivedTransformByName[pNode->mName.data] = accTransform;
     }
-    for ( int childIdx=0; childIdx<pNode->mNumChildren; ++childIdx )
+    for ( unsigned int childIdx=0; childIdx<pNode->mNumChildren; ++childIdx )
     {
         const aiNode *pChildNode = pNode->mChildren[ childIdx ];
         computeNodesDerivedTransform(mScene, pChildNode, accTransform * pChildNode->mTransformation);
@@ -721,7 +756,7 @@ void AssimpLoader::createBonesFromNode(const aiScene* mScene,  const aiNode *pNo
         msBoneCount++;
     }
     // Traverse all child nodes of the current node instance
-    for ( int childIdx=0; childIdx<pNode->mNumChildren; ++childIdx )
+    for ( unsigned int childIdx=0; childIdx<pNode->mNumChildren; ++childIdx )
     {
         const aiNode *pChildNode = pNode->mChildren[ childIdx ];
         createBonesFromNode(mScene, pChildNode);
@@ -751,7 +786,7 @@ void AssimpLoader::createBoneHiearchy(const aiScene* mScene,  const aiNode *pNod
         }
     }
     // Traverse all child nodes of the current node instance
-    for ( int childIdx=0; childIdx<pNode->mNumChildren; childIdx++ )
+    for ( unsigned int childIdx=0; childIdx<pNode->mNumChildren; childIdx++ )
     {
         const aiNode *pChildNode = pNode->mChildren[ childIdx ];
         createBoneHiearchy(mScene, pChildNode);
@@ -783,7 +818,7 @@ void AssimpLoader::grabBoneNamesFromNode(const aiScene* mScene,  const aiNode *p
     meshNum++;
     if(pNode->mNumMeshes > 0)
     {
-        for ( int idx=0; idx<pNode->mNumMeshes; ++idx )
+        for ( unsigned int idx=0; idx<pNode->mNumMeshes; ++idx )
         {
             aiMesh *pAIMesh = mScene->mMeshes[ pNode->mMeshes[ idx ] ];
 
@@ -832,7 +867,7 @@ void AssimpLoader::grabBoneNamesFromNode(const aiScene* mScene,  const aiNode *p
     } // if this node has meshes
 
     // Traverse all child nodes of the current node instance
-    for ( int childIdx=0; childIdx<pNode->mNumChildren; childIdx++ )
+    for ( unsigned int childIdx=0; childIdx<pNode->mNumChildren; childIdx++ )
     {
         const aiNode *pChildNode = pNode->mChildren[ childIdx ];
         grabBoneNamesFromNode(mScene, pChildNode);
@@ -846,7 +881,6 @@ Ogre::String ReplaceSpaces(const Ogre::String& s)
 
     return res;
 }
-
 
 Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMaterial* mat)
 {
@@ -878,6 +912,20 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
     if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_EMISSIVE, &c) == aiReturn_SUCCESS)
         code += "\t\t\temissive " + toString(c) + "\n";
 
+    int shade = aiShadingMode_NoShading;
+    if (AI_SUCCESS == mat->Get(AI_MATKEY_SHADING_MODEL, shade) && shade != aiShadingMode_NoShading) { 
+        switch (shade) {
+            case aiShadingMode_Phong: // Phong shading mode was added to opengl and directx years ago to be ready for gpus to support it (in fixed function pipeline), but no gpus ever did, so it has never done anything. From directx 10 onwards it was removed again.
+            case aiShadingMode_Gouraud:
+                code += "\t\t\tshading gouraud\n";
+                break;
+            case aiShadingMode_Flat:
+                code += "\t\t\tshading flat\n";
+                break;
+            default:
+                break;
+        }
+    }
 
     // Specifies the type of the texture to be retrieved ( e.g. diffuse, specular, height map ...)
     enum aiTextureType type = aiTextureType_DIFFUSE;
@@ -902,10 +950,10 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
 
     // Receives the mapping modes to be used for the texture. The parameter may be NULL but if it is a valid pointer it
     // MUST point to an array of 3 aiTextureMapMode's (one for each axis: UVW order (=XYZ)).
-    aiTextureMapMode mapmode =  aiTextureMapMode_Wrap;
+    aiTextureMapMode mapmode[3] =  { aiTextureMapMode_Wrap, aiTextureMapMode_Wrap, aiTextureMapMode_Wrap };    // mapmode
 
     // For now assuming at most that only one diffuse texture exists
-    if (mat->GetTexture(type, 0, &path, &mapping, &uvindex, &blend, &op, &mapmode) == AI_SUCCESS)
+    if (mat->GetTexture(type, 0, &path, &mapping, &uvindex, &blend, &op, mapmode) == AI_SUCCESS)
     {
         Ogre::String texBasename, texExtention, texPath;
         Ogre::StringUtil::splitFullFilename(Ogre::String(path.data), texBasename, texExtention, texPath);
@@ -922,29 +970,14 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
         //code += "\tset $diffuse_map " + texName + "\n";
         code += "\n\t\t\ttexture_unit\n\t\t\t{\n\t\t\t\ttexture " + texName + "\n";
 
-        /*
-        int blendFunc = 0;
-        mat->Get(AI_MATKEY_BLEND_FUNC, blendFunc);
-        if(blendFunc != 0)
-        {
-            assert(false);
-        }
-
-        float opacity = 1.0f;
-        if(AI_SUCCESS == aiGetMaterialFloat(mat, AI_MATKEY_OPACITY, &opacity) && opacity != 1.0)
-        {
-            // modify the alpha channel in diffuse?
-            //printf("opacity %f\n", opacity);
-        }
-        */
-
         // no infomation on the alpha channel in the texture will have to load the texture and look at it
         code += "\t\t\t}\n";
     }
 
+    code = "\ttechnique\n\t{\n\t\tpass\n\t\t{\n" + code + "\t\t}\n\t}\n";
 
     //code = "material " + materialName + " : base\n{\n" + code + "}\n\n";
-    code = "material " + materialName + "\n{\n\ttechnique\n\t{\n\t\tpass\n\t\t{\n" + code + "\t\t}\n\t}\n}\n\n";
+    code = "material " + materialName + "\n{\n" + code + "}\n\n";
     mMaterialCode += code;
 
     // compile the material
@@ -979,7 +1012,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
     unsigned int uvindex = 0;                             // the texture uv index channel
     float blend = 1.0f;                                   // blend
     aiTextureOp op = aiTextureOp_Multiply;                // op
-    aiTextureMapMode mapmode[2] =  { aiTextureMapMode_Wrap, aiTextureMapMode_Wrap };    // mapmode
+    aiTextureMapMode mapmode[3] =  { aiTextureMapMode_Wrap, aiTextureMapMode_Wrap, aiTextureMapMode_Wrap };	// mapmode
     std::ostringstream texname;
 
     aiString szPath;
@@ -1047,6 +1080,21 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
         omat->setShininess(Ogre::Real(fShininess));
     }
 
+    int shade = aiShadingMode_NoShading;
+    if (AI_SUCCESS == mat->Get(AI_MATKEY_SHADING_MODEL, shade) && shade != aiShadingMode_NoShading) { 
+        switch (shade) {
+        case aiShadingMode_Phong: // Phong shading mode was added to opengl and directx years ago to be ready for gpus to support it (in fixed function pipeline), but no gpus ever did, so it has never done anything. From directx 10 onwards it was removed again.
+        case aiShadingMode_Gouraud:
+            omat->setShadingMode(Ogre::SO_GOURAUD);
+            break;
+        case aiShadingMode_Flat:
+            omat->setShadingMode(Ogre::SO_FLAT);
+            break;
+        default:
+            break;
+        }
+    }
+
     if (mat->GetTexture(type, 0, &path) == AI_SUCCESS)
     {
         if(!mQuietMode)
@@ -1104,17 +1152,15 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
             }
         }
 
-/*		Ogre::TextureManager::getSingleton().loadImage(Ogre::String(szPath.data), Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, image);*/
+		// Ogre::TextureManager::getSingleton().loadImage(Ogre::String(szPath.data), Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, image);
         //TODO: save this to materials/textures ?
         Ogre::TextureUnitState* texUnitState = omat->getTechnique(0)->getPass(0)->createTextureUnitState(basename);
 
     }
+
     omat->load();
     return omat;
 }
-
-
-
 
 
 bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::MeshPtr mMesh, Ogre::AxisAlignedBox& mAAB, const Ogre::String& mDir)
@@ -1293,7 +1339,6 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
     // poke in the face data
     for (size_t i=0; i < mesh->mNumFaces;++i)
     {
-        //		wxASSERT(f->mNumIndices == 3);
         *idata++ = f->mIndices[0];
         *idata++ = f->mIndices[1];
         *idata++ = f->mIndices[2];
@@ -1353,7 +1398,7 @@ void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode,
             }
         }
 
-        for ( int idx=0; idx<pNode->mNumMeshes; ++idx )
+        for ( unsigned int idx=0; idx<pNode->mNumMeshes; ++idx )
         {
             aiMesh *pAIMesh = mScene->mMeshes[ pNode->mMeshes[ idx ] ];
             if(!mQuietMode)
@@ -1368,11 +1413,11 @@ void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode,
 
         // We must indicate the bounding box
         mesh->_setBounds(mAAB);
-        mesh->_setBoundingSphereRadius((mAAB.getMaximum()- mAAB.getMinimum()).length()/2.0);
+        mesh->_setBoundingSphereRadius((mAAB.getMaximum()- mAAB.getMinimum()).length()/2);
     }
 
     // Traverse all child nodes of the current node instance
-    for ( int childIdx=0; childIdx<pNode->mNumChildren; childIdx++ )
+    for ( unsigned int childIdx=0; childIdx<pNode->mNumChildren; childIdx++ )
     {
         const aiNode *pChildNode = pNode->mChildren[ childIdx ];
         loadDataFromNode(mScene, pChildNode, mDir);

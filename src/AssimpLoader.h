@@ -8,7 +8,7 @@ This source file is part of
  \___/ \__, |_|  \___|\__,_|___/___/_|_| |_| |_| .__/
        |___/                                   |_|
 
-For the latest info, see http://code.google.com/p/ogreassimp/
+For the latest info, see https://bitbucket.org/jacmoe/ogreassimp
 
 Copyright (c) 2011 Jacob 'jacmoe' Moen
 
@@ -57,6 +57,40 @@ struct boneNode
 class AssimpLoader
 {
 public:
+    struct AssOptions
+    {
+        Ogre::String source;
+        Ogre::String dest;
+        bool quietMode;
+        Ogre::String logFile;
+        Ogre::String customAnimationName;
+        int params;
+        Ogre::Real animationSpeedModifier;
+        unsigned short numLods;
+        Ogre::Real lodValue;
+        Ogre::String lodStrategy;
+        Ogre::Real lodPercent;
+        size_t lodFixed;
+        bool usePercent;
+
+        AssOptions()
+        {
+            source = "";
+            dest = "";
+            quietMode = false;
+            logFile = "ass.log";
+            customAnimationName = "";
+            params = LP_GENERATE_SINGLE_MESH | LP_GENERATE_MATERIALS_AS_CODE;
+            animationSpeedModifier = 1.0;
+            numLods = 0;
+            lodValue = 250000;
+            lodStrategy = "Distance";
+            lodPercent = 20;
+            lodFixed = 0;
+            usePercent = true;
+        };
+    };
+
     enum LoaderParams
     {
         LP_GENERATE_SINGLE_MESH = 1<<0,
@@ -73,18 +107,16 @@ public:
         LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS = 1<<3,
 
         // Quiet mode - don't output anything
-        LP_QUIET_MODE = 1<<4
+        LP_QUIET_MODE = 1<<4,
+
+        // Create simple shader programs if LP_GENERATE_MATERIALS_AS_CODE is used
+        LP_GENERATE_SHADER_MATERIALS = 1<<5
     };
 
     AssimpLoader();
     virtual ~AssimpLoader();
 
-    // customAnimationName is only applied if the skeleton only has one animation
-    bool convert(const Ogre::String& filename,
-                const Ogre::String& customAnimationName = "",
-                int loaderParams = (LP_GENERATE_SINGLE_MESH | LP_GENERATE_MATERIALS_AS_CODE),
-                const Ogre::String& destination = "",
-                const Ogre::Real animationSpeedModifier = 1.0f);
+    bool convert(const AssOptions options);
 
     const Ogre::String& getBasename(){ return mBasename; }
 
