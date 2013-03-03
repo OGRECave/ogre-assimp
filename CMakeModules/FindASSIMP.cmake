@@ -25,7 +25,7 @@ clear_if_changed(ASSIMP_PREFIX_PATH
   ASSIMP_INCLUDE_DIR
 )
 
-set(ASSIMP_LIBRARY_NAMES assimp)
+set(ASSIMP_LIBRARY_NAMES assimp assimp3.0)
 get_debug_names(ASSIMP_LIBRARY_NAMES)
 
 #use_pkgconfig(ASSIMP_PKGC ASSIMP)
