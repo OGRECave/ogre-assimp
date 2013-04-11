@@ -56,6 +56,11 @@ if(WIN32)
     set_target_properties(OgreAssimpConverter PROPERTIES DEBUG_POSTFIX _d)
 endif(WIN32)
 
+if(FIX_NEED_ZLIB)
+	find_package(ZLIB REQUIRED)
+	set(ASSIMP_LIBRARIES ${ASSIMP_LIBRARIES} ${ZLIB_LIBRARIES})
+endif()
+
 target_link_libraries(OgreAssimpConverter ${OGRE_LIBRARIES} ${ASSIMP_LIBRARIES})
 
 if(UNIX)
