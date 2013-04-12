@@ -84,7 +84,7 @@ AssimpLoader::~AssimpLoader()
 {
 }
 
-bool AssimpLoader::convert(const AssOptions options)
+bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Ogre::SkeletonPtr *skeletonPtr)
 {
     mAnimationSpeedModifier = options.animationSpeedModifier;
     mLoaderParams = options.params;
@@ -180,10 +180,13 @@ bool AssimpLoader::convert(const AssOptions options)
             assert(pBone);
         }
 
-
-
-        Ogre::SkeletonSerializer binSer;
-        binSer.exportSkeleton(mSkeleton.getPointer(), mPath + mBasename + ".skeleton");
+		if(skeletonPtr)
+			(*skeletonPtr) = mSkeleton;
+		else
+		{
+			Ogre::SkeletonSerializer binSer;
+			binSer.exportSkeleton(mSkeleton.getPointer(), mPath + mBasename + ".skeleton");
+		}
     }
 
     Ogre::MeshSerializer meshSer;
@@ -255,7 +258,10 @@ bool AssimpLoader::convert(const AssOptions options)
             pm.generateLodLevels(lodConfig);
         }
 
-        meshSer.exportMesh(mMesh.getPointer(), mPath + mBasename + ".mesh");
+		if(meshPtr)
+			(*meshPtr) = mMesh;
+		else
+			meshSer.exportMesh(mMesh.getPointer(), mPath + mBasename + ".mesh");
     }
 
 
@@ -285,18 +291,19 @@ bool AssimpLoader::convert(const AssOptions options)
             }
         }
 
-        if(exportedNames.size())
-        {
+        if(exportedNames.size()&&!meshPtr)
             ms.exportQueued(mPath + mBasename + ".material", true);
-        }
     }
     else
     {
-        std::ofstream stream;
-        stream.open( (mPath + mBasename + ".material").c_str(), std::ios::out | std::ios::binary);
-        //stream << "import * from base.material\n\n";
-        stream << mMaterialCode;
-        stream.close();
+		if(!meshPtr)
+		{
+			std::ofstream stream;
+			stream.open( (mPath + mBasename + ".material").c_str(), std::ios::out | std::ios::binary);
+			//stream << "import * from base.material\n\n";
+			stream << mMaterialCode;
+			stream.close();
+		}
     }
 
 

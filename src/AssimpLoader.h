@@ -116,7 +116,7 @@ public:
     AssimpLoader();
     virtual ~AssimpLoader();
 
-    bool convert(const AssOptions options);
+    bool convert(const AssOptions options, Ogre::MeshPtr *meshPtr = NULL, Ogre::SkeletonPtr *skeletonPtr = NULL);
 
     const Ogre::String& getBasename(){ return mBasename; }
 
