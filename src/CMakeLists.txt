@@ -63,3 +63,13 @@ if(UNIX)
         DESTINATION include/OgreAssimpLoader)
 endif(UNIX)
 
+if(WIN32)
+    install(TARGETS OgreAssimpLoader
+        DESTINATION ${CMAKE_SOURCE_DIR}/lib
+        CONFIGURATIONS Release RelWithDebInfo Debug)
+
+    install(FILES
+        ${HDRS}
+        DESTINATION ${CMAKE_SOURCE_DIR}/include)
+endif(WIN32)
+
