@@ -1332,25 +1332,45 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
     {
         Ogre::LogManager::getSingleton().logMessage(Ogre::StringConverter::toString(mesh->mNumFaces) + " faces");
     }
-    aiFace *f = mesh->mFaces;
+    aiFace *faces = mesh->mFaces;
 
     // Creates the index data
     submesh->indexData->indexStart = 0;
     submesh->indexData->indexCount = mesh->mNumFaces * 3;
-    submesh->indexData->indexBuffer =
-        Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(Ogre::HardwareIndexBuffer::IT_16BIT,
-        submesh->indexData->indexCount,
-        Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
-    Ogre::uint16* idata = static_cast<Ogre::uint16*>(submesh->indexData->indexBuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
 
-    // poke in the face data
-    for (size_t i=0; i < mesh->mNumFaces;++i)
+    if (submesh->indexData->indexCount >= 65536) // 32 bit index buffer
     {
-        *idata++ = f->mIndices[0];
-        *idata++ = f->mIndices[1];
-        *idata++ = f->mIndices[2];
-        f++;
+            submesh->indexData->indexBuffer = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(
+                    Ogre::HardwareIndexBuffer::IT_32BIT, submesh->indexData->indexCount, Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+
+            Ogre::uint32* indexData = static_cast<Ogre::uint32*>(submesh->indexData->indexBuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
+
+            for (size_t i=0; i < mesh->mNumFaces;++i)
+            {
+                    *indexData++ = faces->mIndices[0];
+                    *indexData++ = faces->mIndices[1];
+                    *indexData++ = faces->mIndices[2];
+
+                    faces++;
+            }
     }
+    else // 16 bit index buffer
+    {
+            submesh->indexData->indexBuffer = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(
+            Ogre::HardwareIndexBuffer::IT_16BIT, submesh->indexData->indexCount, Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+
+            Ogre::uint16* indexData = static_cast<Ogre::uint16*>(submesh->indexData->indexBuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
+
+            for (size_t i=0; i < mesh->mNumFaces;++i)
+            {
+                    *indexData++ = faces->mIndices[0];
+                    *indexData++ = faces->mIndices[1];
+                    *indexData++ = faces->mIndices[2];
+
+                    faces++;
+            }
+    }
+
     submesh->indexData->indexBuffer->unlock();
 
     // set bone weigths
