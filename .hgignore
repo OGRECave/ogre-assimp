@@ -1,3 +1,4 @@
 syntax: glob
 build/*
 *.kdev4
+CMakeLists.txt.user
