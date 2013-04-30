@@ -1398,7 +1398,8 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
     } // if mesh has bones
 
     // Finally we set a material to the submesh
-    submesh->setMaterialName(matptr->getName());
+    if (!matptr.isNull())
+        submesh->setMaterialName(matptr->getName());
 
     return true;
 }
