@@ -48,6 +48,8 @@ include_directories( ${OIS_INCLUDE_DIRS}
     ${ASSIMP_INCLUDE_DIRS}
 )
 
+link_directories(${Boost_LIBRARY_DIR})
+
 add_library(OgreAssimpLoader STATIC ${HDRS} ${SRCS})
 set_target_properties(OgreAssimpLoader PROPERTIES DEBUG_POSTFIX _d)
 
@@ -55,8 +57,8 @@ target_link_libraries(OgreAssimpLoader ${OGRE_LIBRARIES} ${ASSIMP_LIBRARIES})
 
 if(UNIX)
     install(TARGETS OgreAssimpLoader
-        DESTINATION lib
-        CONFIGURATIONS Release RelWithDebInfo Debug)
+        RUNTIME DESTINATION lib
+        CONFIGURATIONS MinSizeRel Release RelWithDebInfo Debug)
 
     install(FILES
         ${HDRS}
@@ -65,11 +67,19 @@ endif(UNIX)
 
 if(WIN32)
     install(TARGETS OgreAssimpLoader
-        DESTINATION ${CMAKE_SOURCE_DIR}/lib
-        CONFIGURATIONS Release RelWithDebInfo Debug)
+        DESTINATION lib/Debug
+        CONFIGURATIONS Debug)
+    install(TARGETS OgreAssimpLoader
+        DESTINATION lib/MinSizeRel
+        CONFIGURATIONS MinSizeRel)
+    install(TARGETS OgreAssimpLoader
+        DESTINATION lib/Release
+        CONFIGURATIONS Release)
+    install(TARGETS OgreAssimpLoader
+        DESTINATION lib/RelWithDebInfo
+        CONFIGURATIONS RelWithDebInfo)
 
     install(FILES
         ${HDRS}
-        DESTINATION ${CMAKE_SOURCE_DIR}/include)
+        DESTINATION include/OgreAssimpLoader)
 endif(WIN32)
-

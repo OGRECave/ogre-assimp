@@ -50,6 +50,8 @@ include_directories( ${OIS_INCLUDE_DIRS}
     "../src"
 )
 
+link_directories(${Boost_LIBRARY_DIR})
+
 add_executable(OgreAssimpConverter ${HDRS} ${SRCS})
 
 if(WIN32)
@@ -71,15 +73,15 @@ endif(UNIX)
 
 if(WIN32)
     install(TARGETS OgreAssimpConverter
-        RUNTIME DESTINATION $ENV{OGRE_HOME}/bin/Debug
+        RUNTIME DESTINATION bin/Debug
         CONFIGURATIONS Debug)
     install(TARGETS OgreAssimpConverter
-        RUNTIME DESTINATION $ENV{OGRE_HOME}/bin/MinSizeRel
+        RUNTIME DESTINATION bin/MinSizeRel
         CONFIGURATIONS MinSizeRel)
     install(TARGETS OgreAssimpConverter
-        RUNTIME DESTINATION $ENV{OGRE_HOME}/bin/Release
+        RUNTIME DESTINATION bin/Release
         CONFIGURATIONS Release)
     install(TARGETS OgreAssimpConverter
-        RUNTIME DESTINATION $ENV{OGRE_HOME}/bin/RelWithDebInfo
+        RUNTIME DESTINATION bin/RelWithDebInfo
         CONFIGURATIONS RelWithDebInfo)
 endif(WIN32)
