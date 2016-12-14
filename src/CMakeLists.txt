@@ -43,7 +43,7 @@ set(SRCS
     ./AssimpLoader.cpp
 )
 
-include_directories( ${OIS_INCLUDE_DIRS}
+include_directories(
     ${OGRE_INCLUDE_DIRS}
     ${ASSIMP_INCLUDE_DIRS}
 )
@@ -58,6 +58,7 @@ target_link_libraries(OgreAssimpLoader ${OGRE_LIBRARIES} ${ASSIMP_LIBRARIES})
 if(UNIX)
     install(TARGETS OgreAssimpLoader
         RUNTIME DESTINATION lib
+        ARCHIVE DESTINATION lib
         CONFIGURATIONS MinSizeRel Release RelWithDebInfo Debug)
 
     install(FILES

@@ -61,7 +61,7 @@ THE SOFTWARE.
 #include "OgreLodConfig.h"
 #include "OgreLodStrategyManager.h"
 #include "OgreDistanceLodStrategy.h"
-#include "OgreProgressiveMeshGenerator.h"
+#include "Ogre.h"
 #include <boost/tuple/tuple.hpp>
 //#include "OgreXMLSkeletonSerializer.h"
 
@@ -262,8 +262,8 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
             }
 
             mMesh->setLodStrategy(Ogre::LodStrategyManager::getSingleton().getStrategy(options.lodStrategy));
-            Ogre::ProgressiveMeshGenerator pm;
-            pm.generateLodLevels(lodConfig);
+            //Ogre::ProgressiveMeshGenerator pm;
+            //pm.generateLodLevels(lodConfig);
         }
 
 		if(meshPtr)

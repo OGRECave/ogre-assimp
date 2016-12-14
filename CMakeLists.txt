@@ -44,35 +44,14 @@ set(OGREASSIMP_VERSION_STRING_MAJOR "0")
 set(OGREASSIMP_VERSION_STRING_MINOR "1")
 set(OGREASSIMP_VERSION_STRING_PATCH "1")
 
-if(WIN32)
-    set(CMAKE_MODULE_PATH "$ENV{OGRE_HOME}/CMake/;${CMAKE_MODULE_PATH}")
-endif(WIN32)
-
-if(UNIX)
-    if(EXISTS "/usr/local/lib/OGRE/cmake")
-
-      set(CMAKE_MODULE_PATH "/usr/local/lib/OGRE/cmake/;${CMAKE_MODULE_PATH}")
-
-    elseif(EXISTS "/usr/lib/OGRE/cmake")
-
-      set(CMAKE_MODULE_PATH "/usr/lib/OGRE/cmake/;${CMAKE_MODULE_PATH}")
-
-    else ()
-      message(SEND_ERROR "Failed to find module path.")
-    endif()
-endif(UNIX)
-
 if (CMAKE_BUILD_TYPE STREQUAL "")
   # CMake defaults to leaving CMAKE_BUILD_TYPE empty. This screws up
   # differentiation between debug and release builds.
   set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Choose the type of build, options are: None (CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif ()
 
-find_package(OGRE REQUIRED)
-
-if("${OGRE_VERSION_NAME}" STREQUAL "Byatis")
-    add_definitions(-DUSING_BYATIS)
-endif()
+find_package(OGRE 1.10 REQUIRED)
+link_directories(${OGRE_LIBRARY_DIRS})
 
 OPTION(FIX_NEED_ZLIB "Switch on if your configuration requires zlib" OFF)
 

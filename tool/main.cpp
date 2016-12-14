@@ -41,11 +41,9 @@ THE SOFTWARE.
 #include <OgreMeshSerializer.h>
 #include <OgreSkeletonSerializer.h>
 #include <OgreDefaultHardwareBufferManager.h>
-#if OGRE_VERSION < ((1 << 16) | (9 << 8) | 0)
-#include <OgreProgressiveMesh.h>
-#endif
 #include <OgreScriptCompiler.h>
 #include <OgreFileSystem.h>
+#include <OgreLodStrategyManager.h>
 
 #include "AssimpLoader.h"
 
