@@ -52,17 +52,18 @@ endif ()
 
 find_package(OGRE 1.10 REQUIRED)
 link_directories(${OGRE_LIBRARY_DIRS})
-
-OPTION(FIX_NEED_ZLIB "Switch on if your configuration requires zlib" OFF)
-
-if(FIX_NEED_ZLIB)
-	find_package(ZLIB REQUIRED)
-	set(OGRE_LIBRARIES ${OGRE_LIBRARIES} ${ZLIB_LIBRARIES})
-endif()
-
 find_package(ASSIMP REQUIRED)
 
-add_subdirectory(src)
+include_directories(${OGRE_INCLUDE_DIRS} ${ASSIMP_INCLUDE_DIRS} src/)
 
-add_subdirectory(tool)
+set(HDRS src/AssimpLoader.h)
+add_library(OgreAssimpLoader src/AssimpLoader.cpp ${HDRS})
+set_target_properties(OgreAssimpLoader PROPERTIES DEBUG_POSTFIX _d)
+target_link_libraries(OgreAssimpLoader ${OGRE_LIBRARIES} ${ASSIMP_LIBRARIES})
 
+install(TARGETS OgreAssimpLoader RUNTIME DESTINATION lib ARCHIVE DESTINATION lib)
+install(FILES ${HDRS} DESTINATION include/OgreAssimpLoader)
+
+add_executable(OgreAssimpConverter tool/main.cpp)
+target_link_libraries(OgreAssimpConverter OgreAssimpLoader)
+install(TARGETS OgreAssimpConverter RUNTIME DESTINATION bin)
