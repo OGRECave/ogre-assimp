@@ -114,7 +114,7 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
     Ogre::UnaryOptionList::iterator ui;
     Ogre::BinaryOptionList::iterator bi;
 
-    opts.params = (AssimpLoader::LP_GENERATE_SINGLE_MESH | AssimpLoader::LP_GENERATE_MATERIALS_AS_CODE);
+    opts.params = AssimpLoader::LP_GENERATE_SINGLE_MESH;
 
     ui = unOpt.find("-q");
     if (ui->second)

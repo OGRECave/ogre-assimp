@@ -1193,7 +1193,8 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
 
     }
 
-    omat->load();
+    //omat->load(); // would need a rendersystem
+
     return omat;
 }
 
