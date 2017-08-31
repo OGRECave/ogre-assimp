@@ -45,7 +45,7 @@ THE SOFTWARE.
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <map>
-
+#include <boost/filesystem.hpp>
 //TODO: only need a bool ?
 struct boneNode
 {
@@ -57,6 +57,8 @@ struct boneNode
 class AssimpLoader
 {
 public:
+	std::string mesh_name = "ROOTMesh";
+	Ogre::MeshPtr meshPtr;
     struct AssOptions
     {
         Ogre::String source;
@@ -116,7 +118,7 @@ public:
     AssimpLoader();
     virtual ~AssimpLoader();
 
-    bool convert(const AssOptions options, Ogre::MeshPtr *meshPtr = NULL, Ogre::SkeletonPtr *skeletonPtr = NULL);
+	bool convert(const AssOptions options, Ogre::MeshPtr &meshPtr, Ogre::SkeletonPtr &mSkeleton, Ogre::MaterialPtr &materialPtr, std::string &my_mesh_name, int quality);
 
     const Ogre::String& getBasename(){ return mBasename; }
 
