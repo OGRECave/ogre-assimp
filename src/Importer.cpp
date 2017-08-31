@@ -109,7 +109,7 @@ bool Importer::CreateMesh(std::string MeshName, std::string filename, int qualit
  
 
         AssimpLoader loader;
-		loader.convert(opts,meshPtr, mSkeleton,materialPtr, MeshName);
+		loader.convert(opts,meshPtr, mSkeleton,materialPtr, MeshName,quality);
 
 	
 
