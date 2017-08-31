@@ -55,7 +55,7 @@ public:
 	Ogre::MeshPtr meshPtr;
 	Ogre::SkeletonPtr mSkeleton;
 	Ogre::MaterialPtr materialPtr;
-	bool CreateMesh(std::string MeshName, std::string filename);
+	bool CreateMesh(std::string MeshName, std::string filename, int quality);
 	Ogre::MaterialPtr get_material_ptr(void);
 };
 #endif

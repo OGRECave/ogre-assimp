@@ -85,7 +85,7 @@ AssimpLoader::~AssimpLoader()
 {
 }
 
-bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr &meshPtrs, Ogre::SkeletonPtr &mSkeleton, Ogre::MaterialPtr &materialPtr,std::string &my_mesh_name)
+bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr &meshPtrs, Ogre::SkeletonPtr &mSkeleton, Ogre::MaterialPtr &materialPtr, std::string &my_mesh_name, int quality)
 {
 	this->meshPtr = meshPtrs;
 
@@ -127,7 +127,10 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr &meshPtrs, Og
     const aiScene *scene;
 
     Assimp::Importer importer;
-    scene = importer.ReadFile(options.source.c_str(), aiProcessPreset_TargetRealtime_Quality | aiProcess_TransformUVCoords | aiProcess_FlipUVs);
+   	if(quality==0)
+		scene = importer.ReadFile(options.source.c_str(),  aiProcess_TransformUVCoords | aiProcess_FlipUVs| aiProcess_OptimizeMeshes| aiProcess_JoinIdenticalVertices);
+	else
+		scene = importer.ReadFile(options.source.c_str(), aiProcessPreset_TargetRealtime_Quality | aiProcess_TransformUVCoords | aiProcess_FlipUVs);
 
     // If the import failed, report it
     if( !scene)

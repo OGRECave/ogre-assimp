@@ -4,7 +4,7 @@
 
 
 
-bool Importer::CreateMesh(std::string MeshName, std::string filename)
+bool Importer::CreateMesh(std::string MeshName, std::string filename, int quality)
 {
 	Ogre::MeshPtr meshPtr = Ogre::MeshManager::getSingletonPtr()->createManual(MeshName, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
 	Ogre::SkeletonPtr mSkeleton = Ogre::SkeletonManager::getSingletonPtr()->create(MeshName, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, true);
