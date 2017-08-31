@@ -34,7 +34,7 @@ Props to  jacmoe and his [OgreAssimp converter](https://bitbucket.org/ogreaddons
 
 ### Discuss this project on Ogre Forum:
 
- * [Assimp->Ogre forum](http://www.ogre3d.org/forums/viewtopic.php?f=1&t=93145) for Markdown parsing
+ * [Assimp->Ogre forum](http://www.ogre3d.org/forums/viewtopic.php?f=1&t=93145)
 
 ### Lastly:
 Any and all improvements made on this code are welcome, we need to also port it over to Ogre 2.1
