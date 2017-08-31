@@ -6,7 +6,7 @@ This code was originally from OgreAssimp Converter tool which can be found at
 
 Basic useful feature list:
 
- * Allows you to import any model into Ogre without using any external tools.
+ * Allows you to import any model into Ogre using Assimp without using any external mesh conversion tools.
  * Imports textures.
  * Imports Skeletons if any.
  * Imports animations.
