@@ -17,7 +17,7 @@ Basic useful feature list:
 
 You need to include 
 ```
-#include <importer.h>
+#include <importer.h> //Don't forget to add the .cpp files into you project.
 ```
 And also link against Assimp lib and boost filesystem.
 
