@@ -64,6 +64,7 @@ THE SOFTWARE.
 #include "Ogre.h"
 #include <boost/tuple/tuple.hpp>
 //#include "OgreXMLSkeletonSerializer.h"
+#include <boost/algorithm/string.hpp>
 
 Ogre::String toString(const aiColor4D& colour)
 {
@@ -84,8 +85,10 @@ AssimpLoader::~AssimpLoader()
 {
 }
 
-bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Ogre::SkeletonPtr *skeletonPtr)
+bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr &meshPtrs, Ogre::SkeletonPtr &mSkeleton, Ogre::MaterialPtr &materialPtr,std::string &my_mesh_name)
 {
+	this->meshPtr = meshPtrs;
+
     mAnimationSpeedModifier = options.animationSpeedModifier;
     mLoaderParams = options.params;
     mQuietMode = ((mLoaderParams & LP_QUIET_MODE) == 0) ? false : true;
@@ -98,6 +101,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
     Ogre::String extension;
     Ogre::StringUtil::splitFullFilename(options.source, mBasename, extension, mPath);
     mBasename = mBasename + "_" + extension;
+	boost::filesystem::path p(options.source);
 
     if(!options.dest.empty())
     {
@@ -114,6 +118,9 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
     }
     Ogre::ResourceGroupManager::getSingleton().addResourceLocation(mPath, "FileSystem");
     Ogre::ResourceGroupManager::getSingleton().addResourceLocation("./resources", "FileSystem");
+	std::string file_path = p.parent_path().string();
+	//boost::replace_all(file_path, "\\", "/");
+	Ogre::ResourceGroupManager::getSingleton().addResourceLocation(file_path, "FileSystem");
 
     Ogre::ResourceGroupManager::getSingleton().initialiseAllResourceGroups();
 
@@ -140,11 +147,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
 
     if(mBonesByName.size())
     {
-#if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
-        mSkeleton = Ogre::SkeletonManager::getSingleton().create("conversion", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-#else
-        mSkeleton = Ogre::SkeletonManager::getSingleton().create("conversion", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME).staticCast<Ogre::Skeleton>();
-#endif
+
 
         msBoneCount = 0;
         createBonesFromNode(scene, scene->mRootNode);
@@ -180,29 +183,23 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
         unsigned short i;
         for (i = 0; i < numBones; ++i)
         {
-            Ogre::Bone* pBone = mSkeleton->getBone(i);
+            Ogre::Bone* pBone =mSkeleton->getBone(i);
             assert(pBone);
         }
 
-		if(skeletonPtr)
-			(*skeletonPtr) = mSkeleton;
-		else
-		{
-			Ogre::SkeletonSerializer binSer;
-			binSer.exportSkeleton(mSkeleton.getPointer(), mPath + mBasename + ".skeleton");
-		}
+
     }
 
     Ogre::MeshSerializer meshSer;
     for(MeshVector::iterator it = mMeshes.begin(); it != mMeshes.end(); ++it)
     {
-        Ogre::MeshPtr mMesh = *it;
+        meshPtr= *it;
         if(mBonesByName.size())
         {
-            mMesh->setSkeletonName(mBasename + ".skeleton");
+			meshPtr->setSkeletonName(mBasename + ".skeleton");
         }
 
-        Ogre::Mesh::SubMeshIterator smIt = mMesh->getSubMeshIterator();
+        Ogre::Mesh::SubMeshIterator smIt = meshPtr->getSubMeshIterator();
         while (smIt.hasMoreElements())
         {
             Ogre::SubMesh* sm = smIt.getNext();
@@ -210,7 +207,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
             {
 #if (OGRE_VERSION >  ((1 << 16) | (7 << 8) | 0))
                 Ogre::VertexDeclaration* newDcl =
-                    sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation(), false);
+                    sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(meshPtr->hasSkeleton(), meshPtr->hasVertexAnimation(), false);
 #else
                 Ogre::VertexDeclaration* newDcl =
                     sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation());
@@ -231,7 +228,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
             unsigned short numLod;
             Ogre::LodConfig lodConfig;
             lodConfig.levels.clear();
-            lodConfig.mesh = mMesh->clone(mMesh->getName());
+			lodConfig.mesh = meshPtr;// ->clone(meshPtr->getName());
 #if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
             lodConfig.strategy = Ogre::DistanceLodStrategy::getSingletonPtr();
 #else
@@ -261,15 +258,12 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
                 lodConfig.levels.push_back(lodLevel);
             }
 
-            mMesh->setLodStrategy(Ogre::LodStrategyManager::getSingleton().getStrategy(options.lodStrategy));
+			meshPtr->setLodStrategy(Ogre::LodStrategyManager::getSingleton().getStrategy(options.lodStrategy));
             //Ogre::ProgressiveMeshGenerator pm;
             //pm.generateLodLevels(lodConfig);
         }
 
-		if(meshPtr)
-			(*meshPtr) = mMesh;
-		else
-			meshSer.exportMesh(mMesh.getPointer(), mPath + mBasename + ".mesh");
+		
     }
 
 
@@ -293,9 +287,9 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
                 if (std::find(exportedNames.begin(), exportedNames.end(), matName) == exportedNames.end())
                 {
 #if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
-                    Ogre::MaterialPtr materialPtr = mmptr->getByName(matName);
+                     materialPtr = mmptr->getByName(matName);
 #else
-                    Ogre::MaterialPtr materialPtr = mmptr->getByName(matName).staticCast<Ogre::Material>();
+                     materialPtr = mmptr->getByName(matName).staticCast<Ogre::Material>();
 #endif
                     ms.queueForExport(materialPtr);
                     exportedNames.push_back(matName);
@@ -303,18 +297,18 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
             }
         }
 
-        if(exportedNames.size()&&!meshPtr)
-            ms.exportQueued(mPath + mBasename + ".material", true);
+    //   if(exportedNames.size()&&!my_object.meshPtr)
+          //  ms.exportQueued(mPath + mBasename + ".material", true);
     }
     else
     {
-		if(!meshPtr)
+		//if(!my_object.meshPtr)
 		{
-			std::ofstream stream;
-			stream.open( (mPath + mBasename + ".material").c_str(), std::ios::out | std::ios::binary);
-			//stream << "import * from base.material\n\n";
-			stream << mMaterialCode;
-			stream.close();
+			;//	std::ofstream stream;
+		//	stream.open( (mPath + mBasename + ".material").c_str(), std::ios::out | std::ios::binary);
+			////stream << "import * from base.material\n\n";
+		//	stream << mMaterialCode;
+		//	stream.close();
 		}
     }
 
@@ -325,11 +319,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
     mBonesByName.clear();
     mBoneNodesByName.clear();
     boneMap.clear();
-#if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
-    mSkeleton = Ogre::SkeletonPtr(NULL);
-#else
-    mSkeleton = Ogre::SkeletonPtr();
-#endif
+
     mCustomAnimationName = "";
     // etc...
 
@@ -1193,7 +1183,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
 
     }
 
-    //omat->load(); // would need a rendersystem
+    omat->load(); // would need a rendersystem
 
     return omat;
 }
@@ -1444,7 +1434,7 @@ void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode,
         {
             if(mMeshes.size() == 0)
             {
-                mesh = Ogre::MeshManager::getSingleton().createManual("ROOTMesh", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+			   mesh = this->meshPtr;
 
                 mMeshes.push_back(mesh);
             }
