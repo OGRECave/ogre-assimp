@@ -26,6 +26,7 @@ And also link against Assimp lib and boost filesystem.
 
 ```javascript
 Importer::Importer naruto_mesh;
+
 naruto_mesh.CreateMesh("NarutoMesh", "E:\\programming\\models\\Kakashi\\Kakashi.obj", Importer::LOW_QUALITY);//Create the mesh with name "NarutoMesh" of Low quality, set Importer::HIGH_QUALITY for high quality
 obstaclescene = mSceneMgr->getRootSceneNode()->createChildSceneNode("obstaclescene_" );
 obstacle = mSceneMgr->createEntity("obstacle_", "NarutoMesh");//Create an entity from the mesh "NarutoMesh"
