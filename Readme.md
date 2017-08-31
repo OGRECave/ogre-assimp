@@ -37,6 +37,8 @@ Props to  jacmoe and his [OgreAssimp converter](https://bitbucket.org/ogreaddons
  * [Assimp->Ogre forum](http://www.ogre3d.org/forums/viewtopic.php?f=1&t=93145)
 
 ### Lastly:
-Any and all improvements made on this code are welcome, we need to also port it over to Ogre 2.1
-Also I assume that we should first port the official tool then we can move to this code, or whichever you preffer.
-NB: This code use OgreAssimp Converter liscence.
+Any and all improvements made on this code are welcome, we need to also port it over to Ogre 2.1.
+
+Also I assume that we should first port the official OgreAssimp tool then we can work on this code, or whichever you preffer.
+### Liscence:
+This code use OgreAssimp Converter liscence.
