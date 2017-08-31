@@ -23,9 +23,9 @@ And also link against Assimp lib and boost filesystem.
 
 ```javascript
 Importer naruto_mesh;
-naruto_mesh.CreateMesh("Mine", "E:\\programming\\models\\Kakashi\\Kakashi.obj");
+naruto_mesh.CreateMesh("NarutoMesh", "E:\\programming\\models\\Kakashi\\Kakashi.obj");//Create the mesh with name "NarutoMesh"
 obstaclescene = mSceneMgr->getRootSceneNode()->createChildSceneNode("obstaclescene_" );
-obstacle = mSceneMgr->createEntity("obstacle_", "Mine");
+obstacle = mSceneMgr->createEntity("obstacle_", "NarutoMesh");//Create an entity from the mesh "NarutoMesh"
 obstaclescene->attachObject(obstacle);
 
 ```
