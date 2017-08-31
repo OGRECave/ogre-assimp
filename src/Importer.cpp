@@ -4,7 +4,7 @@
 
 
 
-bool Importer::CreateMesh(std::string MeshName, std::string filename, int quality)
+bool Importer::Importer::CreateMesh(std::string MeshName, std::string filename, int quality)
 {
 	Ogre::MeshPtr meshPtr = Ogre::MeshManager::getSingletonPtr()->createManual(MeshName, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
 	Ogre::SkeletonPtr mSkeleton = Ogre::SkeletonManager::getSingletonPtr()->create(MeshName, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, true);
@@ -125,7 +125,7 @@ bool Importer::CreateMesh(std::string MeshName, std::string filename, int qualit
     return retCode;
 
 };
- Ogre::MaterialPtr  Importer::get_material_ptr() {
+ Ogre::MaterialPtr  Importer::Importer::get_material_ptr() {
 
 	return this->materialPtr;
  };

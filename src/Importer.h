@@ -49,13 +49,17 @@ THE SOFTWARE.
 #include <OgreLodStrategyManager.h>
 #include "AssimpLoader.h"
 
-class Importer {
+namespace Importer {
+	const int HIGH_QUALITY = 1;
+	const int LOW_QUALITY = 0;
 
-public:
-	Ogre::MeshPtr meshPtr;
-	Ogre::SkeletonPtr mSkeleton;
-	Ogre::MaterialPtr materialPtr;
-	bool CreateMesh(std::string MeshName, std::string filename, int quality);
-	Ogre::MaterialPtr get_material_ptr(void);
-};
+	class Importer {
+	public:
+		Ogre::MeshPtr meshPtr;
+		Ogre::SkeletonPtr mSkeleton;
+		Ogre::MaterialPtr materialPtr;
+		bool CreateMesh(std::string MeshName, std::string filename, int quality);
+		Ogre::MaterialPtr get_material_ptr(void);
+	};
+}
 #endif
