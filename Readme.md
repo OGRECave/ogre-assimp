@@ -1,8 +1,11 @@
 # Readme
 # Assimp -> Ogre adaptor
 
-This code was originally from OgreAssimp Converter tool which can be found at 
+This code was originally from OgreAssimp Converter tool which can be found at [OgreAssimp converter](https://bitbucket.org/ogreaddons/ogreassimp/)
 
+[UH-60Blackhawk](http://i.imgur.com/q0ToYqj.png)
+
+[kakashi](http://i.imgur.com/fWcbMIN.png)
 
 Basic useful feature list:
 
