@@ -140,11 +140,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
 
     if(mBonesByName.size())
     {
-#if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
         mSkeleton = Ogre::SkeletonManager::getSingleton().create("conversion", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-#else
-        mSkeleton = Ogre::SkeletonManager::getSingleton().create("conversion", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME).staticCast<Ogre::Skeleton>();
-#endif
 
         msBoneCount = 0;
         createBonesFromNode(scene, scene->mRootNode);
@@ -168,12 +164,12 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
     }
     Assimp::DefaultLogger::kill();
 
-    if(!mSkeleton.isNull())
+    if(mSkeleton)
     {
 
         if(!mQuietMode)
         {
-            Ogre::LogManager::getSingleton().logMessage("Root bone: " + mSkeleton->getRootBone()->getName());
+            Ogre::LogManager::getSingleton().logMessage("Root bone: " + mSkeleton->getRootBones()[0]->getName());
         }
 
         unsigned short numBones = mSkeleton->getNumBones();
@@ -189,7 +185,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
 		else
 		{
 			Ogre::SkeletonSerializer binSer;
-			binSer.exportSkeleton(mSkeleton.getPointer(), mPath + mBasename + ".skeleton");
+			binSer.exportSkeleton(mSkeleton.get(), mPath + mBasename + ".skeleton");
 		}
     }
 
@@ -269,7 +265,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
 		if(meshPtr)
 			(*meshPtr) = mMesh;
 		else
-			meshSer.exportMesh(mMesh.getPointer(), mPath + mBasename + ".mesh");
+			meshSer.exportMesh(mMesh.get(), mPath + mBasename + ".mesh");
     }
 
 
@@ -292,11 +288,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
                 Ogre::String matName(sm->getMaterialName());
                 if (std::find(exportedNames.begin(), exportedNames.end(), matName) == exportedNames.end())
                 {
-#if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
                     Ogre::MaterialPtr materialPtr = mmptr->getByName(matName);
-#else
-                    Ogre::MaterialPtr materialPtr = mmptr->getByName(matName).staticCast<Ogre::Material>();
-#endif
                     ms.queueForExport(materialPtr);
                     exportedNames.push_back(matName);
                 }
@@ -640,7 +632,7 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
                     keyframe = track->createNodeKeyFrame(Ogre::Real(it->first));
 
                     // weirdness with the root bone, But this seems to work
-                    if(mSkeleton->getRootBone()->getName() == boneName)
+                    if(mSkeleton->getRootBones()[0]->getName() == boneName)
                     {
                         trans = transCopy - bone->getPosition();
                     }
@@ -911,13 +903,9 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
 
     Ogre::MaterialManager* matMgr = Ogre::MaterialManager::getSingletonPtr();
     Ogre::String materialName = mBasename + "#" + Ogre::StringConverter::toString(index);
-    if(matMgr->resourceExists(materialName))
+    if(matMgr->resourceExists(materialName, Ogre::ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME))
     {
-#if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
         Ogre::MaterialPtr matPtr = matMgr->getByName(materialName);
-#else
-        Ogre::MaterialPtr matPtr = matMgr->getByName(materialName).staticCast<Ogre::Material>();
-#endif
         if(matPtr->isLoaded())
         {
             return matPtr;
@@ -1017,11 +1005,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMateri
     Ogre::DataStreamPtr stream(OGRE_NEW Ogre::MemoryDataStream(const_cast<void*>(static_cast<const void*>(code.c_str())),
                                                 code.length() * sizeof(char), false));
     Ogre::MaterialManager::getSingleton().parseScript(stream, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-#if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
     Ogre::MaterialPtr omat = Ogre::MaterialManager::getSingleton().getByName(materialName);
-#else
-    Ogre::MaterialPtr omat = Ogre::MaterialManager::getSingleton().getByName(materialName).staticCast<Ogre::Material>();
-#endif
     //omat->compile(false);
     //omat->load();
 
@@ -1076,7 +1060,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
 #if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
     Ogre::MaterialPtr omat = status.first;
 #else
-    Ogre::MaterialPtr omat = status.first.staticCast<Ogre::Material>();
+    Ogre::MaterialPtr omat = Ogre::static_pointer_cast<Ogre::Material>(status.first);
 #endif
     if (!status.second)
         return omat;
@@ -1164,7 +1148,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
             {
                 // fall back to our very simple and very hardcoded hot-pink version
                 Ogre::DataStreamPtr altStrm(OGRE_NEW Ogre::MemoryDataStream(s_RGB, sizeof(s_RGB)));
-                image.loadRawData(altStrm, 2, 2, Ogre::PF_R8G8B8);
+                image.loadRawData(altStrm, 2, 2, 1, Ogre::PF_R8G8B8);
                 if(!mQuietMode)
                 {
                     Ogre::LogManager::getSingleton().logMessage("Could not load texture, falling back to hotpink");
@@ -1180,7 +1164,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
         } else {
             // fall back to our very simple and very hardcoded hot-pink version
             Ogre::DataStreamPtr altStrm(OGRE_NEW Ogre::MemoryDataStream(s_RGB, sizeof(s_RGB)));
-            image.loadRawData(altStrm, 2, 2, Ogre::PF_R8G8B8);
+            image.loadRawData(altStrm, 2, 2, 1, Ogre::PF_R8G8B8);
             if(!mQuietMode)
             {
                 Ogre::LogManager::getSingleton().logMessage("Could not load texture, falling back to hotpink - 2");
@@ -1427,7 +1411,7 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
     } // if mesh has bones
 
     // Finally we set a material to the submesh
-    if (!matptr.isNull())
+    if (matptr)
         submesh->setMaterialName(matptr->getName());
 
     return true;
