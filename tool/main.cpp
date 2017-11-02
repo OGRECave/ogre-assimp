@@ -103,7 +103,7 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
     unOpt["-shader"] = false;
     binOpt["-log"] = "ass.log";
     binOpt["-aniName"] = "";
-    binOpt["-aniSpeedMod"] = 1.0f;
+    binOpt["-aniSpeedMod"] = "1.0";
     binOpt["-l"] = "";
     binOpt["-v"] = "";
     binOpt["-s"] = "Distance";

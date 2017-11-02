@@ -339,7 +339,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
     return true;
 }
 
-
+/** translation, rotation, scale */
 typedef std::tuple< aiVectorKey*, aiQuatKey*, aiVectorKey* > KeyframeData;
 typedef std::map< Ogre::Real, KeyframeData > KeyframesMap;
 
@@ -470,6 +470,54 @@ aiQuaternion getRotate(aiNodeAnim* node_anim, KeyframesMap& keyframes, Keyframes
     }
 
     return rot;
+}
+
+aiVector3D getScale(aiNodeAnim* node_anim, KeyframesMap& keyframes, KeyframesMap::iterator it, Ogre::Real ticksPerSecond)
+{
+    aiVectorKey* scaleKey = std::get<2>(it->second);
+    aiVector3D vect;
+    if(scaleKey)
+    {
+        vect = scaleKey->mValue;
+    }
+    else
+    {
+        KeyframesMap::reverse_iterator front;
+        KeyframesMap::iterator back;
+
+
+        GetInterpolationIterators< Int2Type<2> > (keyframes, it, front, back);
+
+        KeyframesMap::reverse_iterator rend = keyframes.rend();
+        KeyframesMap::iterator end = keyframes.end();
+        aiVectorKey* frontKey = NULL;
+        aiVectorKey* backKey = NULL;
+
+        if(front != rend)
+            frontKey = std::get<0>(front->second);
+
+        if(back != end)
+            backKey = std::get<0>(back->second);
+
+        // got 2 keys can interpolate
+        if(frontKey && backKey)
+        {
+            float prop = (float)(((double)it->first - frontKey->mTime) / (backKey->mTime - frontKey->mTime));
+            prop /= ticksPerSecond;
+            vect = ((backKey->mValue - frontKey->mValue) * prop) + frontKey->mValue;
+        }
+
+        else if(frontKey)
+        {
+            vect = frontKey->mValue;
+        }
+        else if(backKey)
+        {
+            vect = backKey->mValue;
+        }
+    }
+
+    return vect;
 }
 
 void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation* anim)
@@ -627,8 +675,10 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
 
                     aiQuaternion aiRot = getRotate(node_anim, keyframes, it, mTicksPerSecond);
                     Ogre::Quaternion rot(aiRot.w, aiRot.x, aiRot.y, aiRot.z);
-                    Ogre::Vector3 scale(1,1,1);	// ignore scale for now
 
+                    aiVector3D aiScale = getScale(node_anim, keyframes, it, mTicksPerSecond);
+                    Ogre::Vector3 scale(aiScale.x, aiScale.y, aiScale.z);
+                    
                     Ogre::Vector3 transCopy = trans;
 
                     Ogre::Matrix4 fullTransform;
@@ -647,6 +697,7 @@ void AssimpLoader::parseAnimation (const aiScene* mScene, int index, aiAnimation
 
                     keyframe->setTranslate(trans);
                     keyframe->setRotation(rot);
+                    keyframe->setScale(scale);
                 }
             }
 
