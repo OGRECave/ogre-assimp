@@ -1183,47 +1183,14 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
         Ogre::Image image;
 
         // possibly if we fail to actually find it, pop up a box?
-        Ogre::String pathname(mDir + "\\" + path.data);
+        Ogre::String pathname(mDir + "/" + path.data);
 
         std::ifstream imgstream;
         imgstream.open(path.data, std::ios::binary);
         if(!imgstream.is_open())
-            imgstream.open(Ogre::String(mPath + Ogre::String("\\") + Ogre::String(path.data)).c_str(), std::ios::binary);
-
-        if (imgstream.is_open())
-        {
-            // Wrap as a stream
-            Ogre::DataStreamPtr strm(OGRE_NEW Ogre::FileStreamDataStream(path.data, &imgstream, false));
-
-            if (!strm->size() || strm->size() == 0xffffffff)
-            {
-                // fall back to our very simple and very hardcoded hot-pink version
-                Ogre::DataStreamPtr altStrm(OGRE_NEW Ogre::MemoryDataStream(s_RGB, sizeof(s_RGB)));
-                image.loadRawData(altStrm, 2, 2, 1, Ogre::PF_R8G8B8);
-                if(!mQuietMode)
-                {
-                    Ogre::LogManager::getSingleton().logMessage("Could not load texture, falling back to hotpink");
-                }
-            } else
-            {
-                // extract extension from filename
-                size_t pos = pathname.find_last_of('.');
-                Ogre::String ext = pathname.substr(pos+1);
-                image.load(strm, ext);
-                imgstream.close();
-            }
-        } else {
-            // fall back to our very simple and very hardcoded hot-pink version
-            Ogre::DataStreamPtr altStrm(OGRE_NEW Ogre::MemoryDataStream(s_RGB, sizeof(s_RGB)));
-            image.loadRawData(altStrm, 2, 2, 1, Ogre::PF_R8G8B8);
-            if(!mQuietMode)
-            {
-                Ogre::LogManager::getSingleton().logMessage("Could not load texture, falling back to hotpink - 2");
-            }
-        }
-
-		// Ogre::TextureManager::getSingleton().loadImage(Ogre::String(szPath.data), Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, image);
+            imgstream.open(Ogre::String(mPath + "/" + path.data).c_str(), std::ios::binary);
         //TODO: save this to materials/textures ?
+
         Ogre::TextureUnitState* texUnitState = omat->getTechnique(0)->getPass(0)->createTextureUnitState(basename);
 
     }
