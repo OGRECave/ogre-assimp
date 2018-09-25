@@ -1295,6 +1295,17 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
 
     aiMatrix4x4 aiM = mNodeDerivedTransformByName.find(pNode->mName.data)->second;
 
+    aiQuaternion rotation;
+    aiVector3D position;
+    aiVector3D scaling;
+    aiM.Decompose(scaling, rotation, position);
+
+    aiMatrix4x4 scalingM;
+    aiMatrix4x4::Scaling(scaling, scalingM);
+
+    aiMatrix4x4 rotationM = aiMatrix4x4(rotation.GetMatrix());
+
+    aiMatrix4x4 normalMatrix = scalingM * rotationM;
 
     // Now we get access to the buffer to fill it.  During so we record the bounding box.
     float* vdata = static_cast<float*>(vbuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
@@ -1329,7 +1340,8 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
             vect.y = norm->y;
             vect.z = norm->z;
 
-            vect *= aiM;
+            vect *= normalMatrix;
+            vect = vect.Normalize();
 
             *vdata++ = vect.x;
             *vdata++ = vect.y;
