@@ -243,7 +243,7 @@ Ogre::FileSystemArchiveFactory* mfsarchf = 0;
 class DefaultTexture : public Ogre::Texture
 {
     void loadImpl() {}
-    Ogre::HardwarePixelBufferSharedPtr getBuffer(size_t, size_t)
+    const Ogre::HardwarePixelBufferSharedPtr& getBuffer(size_t, size_t)
     {
         return Ogre::HardwarePixelBufferSharedPtr();
     }
