@@ -240,43 +240,7 @@ Ogre::ScriptCompilerManager* scmgr = 0;
 Ogre::ArchiveManager* archmgr = 0;
 Ogre::FileSystemArchiveFactory* mfsarchf = 0;
 
-class DefaultTexture : public Ogre::Texture
-{
-    void loadImpl() {}
-    Ogre::HardwarePixelBufferSharedPtr getBuffer(size_t, size_t)
-    {
-        return Ogre::HardwarePixelBufferSharedPtr();
-    }
-    void createInternalResourcesImpl() {}
-    void freeInternalResourcesImpl() {}
-public:
-    DefaultTexture(Ogre::ResourceManager* creator, const Ogre::String& name, Ogre::ResourceHandle handle,
-        const Ogre::String& group) : Ogre::Texture(creator, name, handle, group) {}
-};
-
-class DefaultTextureManager : public Ogre::TextureManager
-{
-public:
-  bool isHardwareFilteringSupported(Ogre::TextureType, Ogre::PixelFormat, int,
-                                    bool) {
-    return false;
-  }
-
-  Ogre::PixelFormat getNativeFormat(Ogre::TextureType, Ogre::PixelFormat, int)
-  {
-      return Ogre::PF_UNKNOWN;
-  }
-
-  Ogre::Resource* createImpl(const Ogre::String& name,
-                             Ogre::ResourceHandle handle,
-                             const Ogre::String& group, bool,
-                             Ogre::ManualResourceLoader*,
-                             const Ogre::NameValuePairList*) {
-    return new DefaultTexture(this, name, handle, group);
-  }
-};
-
-DefaultTextureManager* texMgr = 0;
+Ogre::DefaultTextureManager* texMgr = 0;
 
 int main(int numargs, char** args)
 {
@@ -319,7 +283,7 @@ int main(int numargs, char** args)
         mfsarchf = new Ogre::FileSystemArchiveFactory();
         Ogre::ArchiveManager::getSingleton().addArchiveFactory( mfsarchf );
 
-        texMgr = new DefaultTextureManager();
+        texMgr = new Ogre::DefaultTextureManager();
 
         if(opts.quietMode)
             opts.params |= AssimpLoader::LP_QUIET_MODE;
