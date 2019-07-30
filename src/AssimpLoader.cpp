@@ -1392,6 +1392,7 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
 
             for (size_t i=0; i < mesh->mNumFaces;++i)
             {
+                    // this is a quick hack to filter lines, which are currently not supported
                     if(faces->mNumIndices != 3) {
                             *indexData++ = 0;
                             *indexData++ = 0;
@@ -1415,6 +1416,7 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
 
             for (size_t i=0; i < mesh->mNumFaces;++i)
             {
+                    // this is a quick hack to filter lines, which are currently not supported
                     if(faces->mNumIndices != 3) {
                             *indexData++ = 0;
                             *indexData++ = 0;
