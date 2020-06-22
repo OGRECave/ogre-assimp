@@ -66,12 +66,6 @@ public:
         Ogre::String customAnimationName;
         int params;
         Ogre::Real animationSpeedModifier;
-        unsigned short numLods;
-        Ogre::Real lodValue;
-        Ogre::String lodStrategy;
-        Ogre::Real lodPercent;
-        size_t lodFixed;
-        bool usePercent;
 
         AssOptions()
         {
@@ -82,12 +76,6 @@ public:
             customAnimationName = "";
             params = LP_GENERATE_SINGLE_MESH;
             animationSpeedModifier = 1.0;
-            numLods = 0;
-            lodValue = 250000;
-            lodStrategy = "Distance";
-            lodPercent = 20;
-            lodFixed = 0;
-            usePercent = true;
         };
     };
 

@@ -86,11 +86,6 @@ void help(void)
     std::cout << "-3ds_dae_fix        = When 3ds max exports as DAE it gets some of the transforms wrong, get around this" << std::endl;
     std::cout << "                      by using this option and a prior run with of the model exported as ASE" << std::endl;
     std::cout << "-shadows            = set receive shadows = on in material script" << std::endl;
-    std::cout << "-l lodlevels        = number of LOD levels" << std::endl;
-    std::cout << "-v lodvalue         = value increment to reduce LOD" << std::endl;
-    std::cout << "-s lodstrategy      = LOD strategy to use for this mesh" << std::endl;
-    std::cout << "-p lodpercent       = Percentage triangle reduction amount per LOD" << std::endl;
-    std::cout << "-f lodnumtris       = Fixed vertex reduction per LOD" << std::endl;
     std::cout << "sourcefile          = name of file to convert" << std::endl;
     std::cout << "destination         = optional name of directory to write to. If you don't" << std::endl;
     std::cout << "                      specify this the converter will use the same directory as the sourcefile."  << std::endl;
@@ -105,11 +100,6 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
     opts.customAnimationName = "";
     opts.dest = "";
     opts.animationSpeedModifier = 1.0;
-    opts.lodValue = 250000;
-    opts.lodFixed = 0;
-    opts.lodPercent = 20;
-    opts.numLods = 0;
-    opts.usePercent = true;
 
     // ignore program name
     char* source = 0;
@@ -125,11 +115,6 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
     binOpt["-log"] = "ass.log";
     binOpt["-aniName"] = "";
     binOpt["-aniSpeedMod"] = "1.0";
-    binOpt["-l"] = "";
-    binOpt["-v"] = "";
-    binOpt["-s"] = "Distance";
-    binOpt["-p"] = "";
-    binOpt["-f"] = "";
 
     int startIndex = Ogre::findCommandLineOpts(numArgs, args, unOpt, binOpt);
     Ogre::UnaryOptionList::iterator ui;
@@ -167,33 +152,6 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
     if (!bi->second.empty())
     {
         opts.customAnimationName = bi->second;
-    }
-    bi = binOpt.find("-l");
-    if (!bi->second.empty())
-    {
-        opts.numLods = Ogre::StringConverter::parseInt(bi->second);
-    }
-    bi = binOpt.find("-v");
-    if (!bi->second.empty())
-    {
-        opts.lodValue = Ogre::StringConverter::parseReal(bi->second);
-    }
-    bi = binOpt.find("-s");
-    if (!bi->second.empty())
-    {
-        opts.lodStrategy = bi->second;
-    }
-    bi = binOpt.find("-p");
-    if (!bi->second.empty())
-    {
-        opts.lodPercent = Ogre::StringConverter::parseReal(bi->second);
-        opts.usePercent = true;
-    }
-    bi = binOpt.find("-f");
-    if (!bi->second.empty())
-    {
-        opts.lodFixed = Ogre::StringConverter::parseInt(bi->second);
-        opts.usePercent = false;
     }
 
     // Source / dest
