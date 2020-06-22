@@ -119,9 +119,6 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
         Ogre::LogManager::getSingleton().logMessage("Filename " + options.source);
     }
     Ogre::ResourceGroupManager::getSingleton().addResourceLocation(mPath, "FileSystem");
-    Ogre::ResourceGroupManager::getSingleton().addResourceLocation("./resources", "FileSystem");
-
-    Ogre::ResourceGroupManager::getSingleton().initialiseAllResourceGroups();
 
     const aiScene *scene;
 
