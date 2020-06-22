@@ -85,7 +85,6 @@ void help(void)
     std::cout << "                      longer time frame than the animation actually plays for" << std::endl;
     std::cout << "-3ds_dae_fix        = When 3ds max exports as DAE it gets some of the transforms wrong, get around this" << std::endl;
     std::cout << "                      by using this option and a prior run with of the model exported as ASE" << std::endl;
-    std::cout << "-shader             = create shader based materials" << std::endl;
     std::cout << "-shadows            = set receive shadows = on in material script" << std::endl;
     std::cout << "-l lodlevels        = number of LOD levels" << std::endl;
     std::cout << "-v lodvalue         = value increment to reduce LOD" << std::endl;
@@ -123,7 +122,6 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
     unOpt["-q"] = false;
     unOpt["-3ds_ani_fix"] = false;
     unOpt["-3ds_dae_fix"] = false;
-    unOpt["-shader"] = false;
     binOpt["-log"] = "ass.log";
     binOpt["-aniName"] = "";
     binOpt["-aniSpeedMod"] = "1.0";
@@ -153,11 +151,6 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
     if (ui->second)
     {
         opts.params |= AssimpLoader::LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS;
-    }
-    ui = unOpt.find("-shader");
-    if (ui->second)
-    {
-        opts.params |= AssimpLoader::LP_GENERATE_SHADER_MATERIALS;
     }
 
     bi = binOpt.find("-log");

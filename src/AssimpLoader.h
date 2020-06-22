@@ -104,10 +104,7 @@ public:
         LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS = 1<<3,
 
         // Quiet mode - don't output anything
-        LP_QUIET_MODE = 1<<4,
-
-        // Create simple shader programs if LP_GENERATE_MATERIALS_AS_CODE is used
-        LP_GENERATE_SHADER_MATERIALS = 1<<5
+        LP_QUIET_MODE = 1<<4
     };
 
     AssimpLoader();
