@@ -80,7 +80,7 @@ public:
             quietMode = false;
             logFile = "ass.log";
             customAnimationName = "";
-            params = LP_GENERATE_SINGLE_MESH | LP_GENERATE_MATERIALS_AS_CODE;
+            params = LP_GENERATE_SINGLE_MESH;
             animationSpeedModifier = 1.0;
             numLods = 0;
             lodValue = 250000;
@@ -94,9 +94,6 @@ public:
     enum LoaderParams
     {
         LP_GENERATE_SINGLE_MESH = 1<<0,
-
-        // See the two possible methods for material gneration
-        LP_GENERATE_MATERIALS_AS_CODE = 1<<1,
 
         // 3ds max exports the animation over a longer time frame than the animation actually plays for
         // this is a fix for that
@@ -123,7 +120,6 @@ public:
 private:
     bool createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::MeshPtr mMesh, Ogre::AxisAlignedBox& mAAB, const Ogre::String& mDir);
     Ogre::MaterialPtr createMaterial(int index, const aiMaterial* mat, const Ogre::String& mDir);
-    Ogre::MaterialPtr createMaterialByScript(int index, const aiMaterial* mat);
     void grabNodeNamesFromNode(const aiScene* mScene,  const aiNode* pNode);
     void grabBoneNamesFromNode(const aiScene* mScene,  const aiNode* pNode);
     void computeNodesDerivedTransform(const aiScene* mScene,  const aiNode *pNode, const aiMatrix4x4 accTransform);
@@ -140,7 +136,6 @@ private:
     int mLoaderParams;
     Ogre::String mBasename;
     Ogre::String mPath;
-    Ogre::String mMaterialCode;
     Ogre::String mCustomAnimationName;
 
     typedef std::map<Ogre::String, const aiNode*> BoneNodeMap;

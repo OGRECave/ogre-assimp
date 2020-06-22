@@ -276,52 +276,35 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
 
 
     // serialise the materials
-    if((mLoaderParams & LP_GENERATE_MATERIALS_AS_CODE) == 0)
+    Ogre::MaterialSerializer ms;
+    std::vector<Ogre::String> exportedNames;
+
+    for(MeshVector::iterator it = mMeshes.begin(); it != mMeshes.end(); ++it)
     {
-        Ogre::MaterialSerializer ms;
-        std::vector<Ogre::String> exportedNames;
+        Ogre::MeshPtr mMesh = *it;
 
-        for(MeshVector::iterator it = mMeshes.begin(); it != mMeshes.end(); ++it)
+        // queue up the materials for serialise
+        Ogre::MaterialManager *mmptr = Ogre::MaterialManager::getSingletonPtr();
+        for(Ogre::SubMesh* sm : mMesh->getSubMeshes())
         {
-            Ogre::MeshPtr mMesh = *it;
-
-            // queue up the materials for serialise
-            Ogre::MaterialManager *mmptr = Ogre::MaterialManager::getSingletonPtr();
-            Ogre::Mesh::SubMeshIterator smIt = mMesh->getSubMeshIterator();
-            while(smIt.hasMoreElements())
+            Ogre::String matName(sm->getMaterialName());
+            if (std::find(exportedNames.begin(), exportedNames.end(), matName) == exportedNames.end())
             {
-                Ogre::SubMesh* sm = smIt.getNext();
-                Ogre::String matName(sm->getMaterialName());
-                if (std::find(exportedNames.begin(), exportedNames.end(), matName) == exportedNames.end())
-                {
-                    Ogre::MaterialPtr materialPtr = mmptr->getByName(matName);
-                    ms.queueForExport(materialPtr);
-                    exportedNames.push_back(matName);
-                }
+                Ogre::MaterialPtr materialPtr = mmptr->getByName(matName);
+                ms.queueForExport(materialPtr);
+                exportedNames.push_back(matName);
             }
         }
+    }
 
-        if(exportedNames.size()&&!meshPtr)
-            ms.exportQueued(mPath + mBasename + ".material", true);
-    }
-    else
-    {
-		if(!meshPtr)
-		{
-			std::ofstream stream;
-			stream.open( (mPath + mBasename + ".material").c_str(), std::ios::out | std::ios::binary);
-			//stream << "import * from base.material\n\n";
-			stream << mMaterialCode;
-			stream.close();
-		}
-    }
+    if(exportedNames.size()&&!meshPtr)
+        ms.exportQueued(mPath + mBasename + ".material", true);
 
     for(auto mesh: mMeshes)
         mesh->load();
 
     // clean up
     mMeshes.clear();
-    mMaterialCode = "";
     mBonesByName.clear();
     mBoneNodesByName.clear();
     boneMap.clear();
@@ -956,121 +939,6 @@ Ogre::String ReplaceSpaces(const Ogre::String& s)
     return res;
 }
 
-Ogre::MaterialPtr AssimpLoader::createMaterialByScript(int index, const aiMaterial* mat)
-{
-    // Create a material in code as using script inheritance variable substitution and other goodies
-
-    Ogre::MaterialManager* matMgr = Ogre::MaterialManager::getSingletonPtr();
-    Ogre::String materialName = mBasename + "#" + Ogre::StringConverter::toString(index);
-    if(matMgr->resourceExists(materialName, Ogre::ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME))
-    {
-        Ogre::MaterialPtr matPtr = matMgr->getByName(materialName);
-        if(matPtr->isLoaded())
-        {
-            return matPtr;
-        }
-    }
-
-    Ogre::String code;
-
-    aiColor4D c;
-    if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_AMBIENT,  &c) == aiReturn_SUCCESS)
-        code += "\t\t\tambient " + toString(c) + "\n";
-
-    if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &c) == aiReturn_SUCCESS)
-        code += "\t\t\tdiffuse " + toString(c) + "\n";
-
-    if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_SPECULAR, &c) == aiReturn_SUCCESS)
-        code += "\t\t\tspecular " + toString(c) + "\n";
-
-    if(aiGetMaterialColor(mat, AI_MATKEY_COLOR_EMISSIVE, &c) == aiReturn_SUCCESS)
-        code += "\t\t\temissive " + toString(c) + "\n";
-
-    int shade = aiShadingMode_NoShading;
-    if (AI_SUCCESS == mat->Get(AI_MATKEY_SHADING_MODEL, shade) && shade != aiShadingMode_NoShading) { 
-        switch (shade) {
-            case aiShadingMode_Phong: // Phong shading mode was added to opengl and directx years ago to be ready for gpus to support it (in fixed function pipeline), but no gpus ever did, so it has never done anything. From directx 10 onwards it was removed again.
-            case aiShadingMode_Gouraud:
-                code += "\t\t\tshading gouraud\n";
-                break;
-            case aiShadingMode_Flat:
-                code += "\t\t\tshading flat\n";
-                break;
-            default:
-                break;
-        }
-    }
-
-    // Specifies the type of the texture to be retrieved ( e.g. diffuse, specular, height map ...)
-    enum aiTextureType type = aiTextureType_DIFFUSE;
-
-    // Index of the texture to be retrieved. The function fails if there is no texture of that type with this index.
-    // GetTextureCount() can be used to determine the number of textures per texture type.
-
-    // Receives the path to the texture. NULL is a valid value.
-    aiString path;
-
-    // The texture mapping. NULL is allowed as value.
-    aiTextureMapping mapping = aiTextureMapping_UV;
-
-    // Receives the UV index of the texture. NULL is a valid value.
-    unsigned int uvindex = 0;
-
-    // Receives the blend factor for the texture NULL is a valid value.
-    float blend = 1.0f;
-
-    // Receives the texture operation to be performed between this texture and the previous texture. NULL is allowed as value.
-    aiTextureOp op = aiTextureOp_Multiply;
-
-    // Receives the mapping modes to be used for the texture. The parameter may be NULL but if it is a valid pointer it
-    // MUST point to an array of 3 aiTextureMapMode's (one for each axis: UVW order (=XYZ)).
-    aiTextureMapMode mapmode[3] =  { aiTextureMapMode_Wrap, aiTextureMapMode_Wrap, aiTextureMapMode_Wrap };    // mapmode
-
-    // For now assuming at most that only one diffuse texture exists
-    if (mat->GetTexture(type, 0, &path, &mapping, &uvindex, &blend, &op, mapmode) == AI_SUCCESS)
-    {
-        Ogre::String texBasename, texExtention, texPath;
-        Ogre::StringUtil::splitFullFilename(Ogre::String(path.data), texBasename, texExtention, texPath);
-
-        Ogre::String texName = texBasename + "." + texExtention;
-
-        int twoSided = 0;
-        mat->Get(AI_MATKEY_TWOSIDED, twoSided);
-        if(twoSided != 0)
-        {
-            code += "\t\t\t\tcull_hardware none\n";
-        }
-
-        //code += "\tset $diffuse_map " + texName + "\n";
-        code += "\n\t\t\ttexture_unit\n\t\t\t{\n\t\t\t\ttexture " + texName + "\n";
-
-        // no infomation on the alpha channel in the texture will have to load the texture and look at it
-        code += "\t\t\t}\n";
-    }
-
-    code = "\ttechnique\n\t{\n\t\tpass\n\t\t{\n" + code + "\t\t}\n\t}\n";
-
-    //code = "material " + materialName + " : base\n{\n" + code + "}\n\n";
-    code = "material " + materialName + "\n{\n" + code + "}\n\n";
-    mMaterialCode += code;
-
-    // compile the material
-    //code = "import * from base.material\n" + code;
-
-/*    std::cout << "-------------------------------------------code" << std::endl;
-    std::cout << code << std::endl;
-    std::cout << "-------------------------------------------code" << std::endl;*/
-
-    Ogre::DataStreamPtr stream(OGRE_NEW Ogre::MemoryDataStream(const_cast<void*>(static_cast<const void*>(code.c_str())),
-                                                code.length() * sizeof(char), false));
-    Ogre::MaterialManager::getSingleton().parseScript(stream, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-    Ogre::MaterialPtr omat = Ogre::MaterialManager::getSingleton().getByName(materialName);
-    //omat->compile(false);
-    //omat->load();
-
-    return omat;
-}
-
 Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat, const Ogre::String& mDir)
 {
     static int dummyMatCount = 0;
@@ -1221,16 +1089,7 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
         return false;
     }
 
-    Ogre::MaterialPtr matptr;
-
-    if((mLoaderParams & LP_GENERATE_MATERIALS_AS_CODE) == 0)
-    {
-        matptr = createMaterial(mesh->mMaterialIndex, mat, mDir);
-    }
-    else
-    {
-        matptr = createMaterialByScript(mesh->mMaterialIndex, mat);
-    }
+    Ogre::MaterialPtr matptr = createMaterial(mesh->mMaterialIndex, mat, mDir);
 
     // now begin the object definition
     // We create a submesh per material
