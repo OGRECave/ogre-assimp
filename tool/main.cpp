@@ -47,6 +47,29 @@ THE SOFTWARE.
 
 #include "AssimpLoader.h"
 
+namespace
+{
+// Crappy globals
+// NB some of these are not directly used, but are required to
+//   instantiate the singletons used in the dlls
+Ogre::LogManager* logMgr = 0;
+Ogre::Math* mth = 0;
+Ogre::LodStrategyManager *lodMgr = 0;
+Ogre::MaterialManager* matMgr = 0;
+Ogre::SkeletonManager* skelMgr = 0;
+Ogre::MeshSerializer* meshSerializer = 0;
+//Ogre::XMLMeshSerializer* xmlMeshSerializer = 0;
+Ogre::SkeletonSerializer* skeletonSerializer = 0;
+//Ogre::XMLSkeletonSerializer* xmlSkeletonSerializer = 0;
+Ogre::DefaultHardwareBufferManager *bufferManager = 0;
+Ogre::MeshManager* meshMgr = 0;
+Ogre::ResourceGroupManager* rgm = 0;
+Ogre::ScriptCompilerManager* scmgr = 0;
+Ogre::ArchiveManager* archmgr = 0;
+Ogre::FileSystemArchiveFactory* mfsarchf = 0;
+
+Ogre::DefaultTextureManager* texMgr = 0;
+
 void help(void)
 {
     // Print help message
@@ -186,14 +209,14 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
     if (numArgs > startIndex+1)
         dest = args[startIndex+1];
     if (numArgs > startIndex+2) {
-        std::cout << "Too many command-line arguments supplied - abort. " << std::endl;
+        logMgr->logError("Too many command-line arguments supplied");
         help();
         exit(1);
     }
 
     if (!source)
     {
-        std::cout << "Missing source file - abort. " << std::endl;
+        logMgr->logError("Missing source file");
         help();
         exit(1);
     }
@@ -220,27 +243,7 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
 
     return opts;
 }
-
-// Crappy globals
-// NB some of these are not directly used, but are required to
-//   instantiate the singletons used in the dlls
-Ogre::LogManager* logMgr = 0;
-Ogre::Math* mth = 0;
-Ogre::LodStrategyManager *lodMgr = 0;
-Ogre::MaterialManager* matMgr = 0;
-Ogre::SkeletonManager* skelMgr = 0;
-Ogre::MeshSerializer* meshSerializer = 0;
-//Ogre::XMLMeshSerializer* xmlMeshSerializer = 0;
-Ogre::SkeletonSerializer* skeletonSerializer = 0;
-//Ogre::XMLSkeletonSerializer* xmlSkeletonSerializer = 0;
-Ogre::DefaultHardwareBufferManager *bufferManager = 0;
-Ogre::MeshManager* meshMgr = 0;
-Ogre::ResourceGroupManager* rgm = 0;
-Ogre::ScriptCompilerManager* scmgr = 0;
-Ogre::ArchiveManager* archmgr = 0;
-Ogre::FileSystemArchiveFactory* mfsarchf = 0;
-
-Ogre::DefaultTextureManager* texMgr = 0;
+}
 
 int main(int numargs, char** args)
 {
@@ -294,8 +297,7 @@ int main(int numargs, char** args)
     }
     catch(Ogre::Exception& e)
     {
-        std::cerr << "FATAL ERROR: " << e.getDescription() << std::endl;
-        std::cerr << "ABORTING!" << std::endl;
+        logMgr->logError(e.getDescription()+" Aborting!");
         retCode = 1;
     }
 
