@@ -943,7 +943,6 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
     // extreme fallback texture -- 2x2 hot pink
     static Ogre::uint8 s_RGB[] = {128, 0, 255, 128, 0, 255, 128, 0, 255, 128, 0, 255};
 
-    std::ostringstream matname;
     Ogre::MaterialManager* omatMgr =  Ogre::MaterialManager::getSingletonPtr();
     enum aiTextureType type = aiTextureType_DIFFUSE;
     static aiString path;
@@ -955,32 +954,29 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
     std::ostringstream texname;
 
     aiString szPath;
-    if(AI_SUCCESS == aiGetMaterialString(mat, AI_MATKEY_TEXTURE_DIFFUSE(0), &szPath))
+    if(AI_SUCCESS == aiGetMaterialString(mat, AI_MATKEY_NAME, &szPath))
     {
         if(!mQuietMode)
         {
-            Ogre::LogManager::getSingleton().logMessage("Using aiGetMaterialString : Found texture " + Ogre::String(szPath.data) + " for channel " + Ogre::StringConverter::toString(uvindex));
+            Ogre::LogManager::getSingleton().logMessage("Using aiGetMaterialString : Name " + Ogre::String(szPath.data));
         }
     }
     if(szPath.length < 1)
     {
         if(!mQuietMode)
         {
-            Ogre::LogManager::getSingleton().logMessage("Didn't find any texture units...");
+            Ogre::LogManager::getSingleton().logMessage("Unnamed material encountered...");
         }
         szPath = Ogre::String("dummyMat" + Ogre::StringConverter::toString(dummyMatCount)).c_str();
         dummyMatCount++;
     }
 
-    Ogre::String basename;
-    Ogre::String outPath;
-    Ogre::StringUtil::splitFilename(Ogre::String(szPath.data), basename, outPath);
     if(!mQuietMode)
     {
-        Ogre::LogManager::getSingleton().logMessage("Creating " + basename);
+        Ogre::LogManager::getSingleton().logMessage("Creating " + Ogre::String(szPath.data));
     }
 
-    Ogre::ResourceManager::ResourceCreateOrRetrieveResult status = omatMgr->createOrRetrieve(ReplaceSpaces(basename), Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, true);
+    Ogre::ResourceManager::ResourceCreateOrRetrieveResult status = omatMgr->createOrRetrieve(ReplaceSpaces(szPath.data), Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
 #if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
     Ogre::MaterialPtr omat = status.first;
 #else
@@ -1052,23 +1048,13 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
             }
         }
 
-        // attempt to load the image
-        Ogre::Image image;
+        Ogre::String basename;
+        Ogre::String outPath;
+        Ogre::StringUtil::splitFilename(Ogre::String(szPath.data), basename, outPath);
+        omat->getTechnique(0)->getPass(0)->createTextureUnitState(basename);
 
-        // possibly if we fail to actually find it, pop up a box?
-        Ogre::String pathname(mDir + "/" + path.data);
-
-        std::ifstream imgstream;
-        imgstream.open(path.data, std::ios::binary);
-        if(!imgstream.is_open())
-            imgstream.open(Ogre::String(mPath + "/" + path.data).c_str(), std::ios::binary);
-        //TODO: save this to materials/textures ?
-
-        Ogre::TextureUnitState* texUnitState = omat->getTechnique(0)->getPass(0)->createTextureUnitState(basename);
-
+        // TODO: save embedded images to file
     }
-
-    //omat->load(); // would need a rendersystem
 
     return omat;
 }
