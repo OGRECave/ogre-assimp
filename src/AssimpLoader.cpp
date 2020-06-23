@@ -125,6 +125,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
     Assimp::Importer importer;
     Ogre::uint32 flags = aiProcessPreset_TargetRealtime_Quality | aiProcess_TransformUVCoords | aiProcess_FlipUVs;
     importer.SetPropertyFloat("PP_GSN_MAX_SMOOTHING_ANGLE", options.maxEdgeAngle);
+    importer.SetPropertyInteger("PP_SBP_REMOVE", aiPrimitiveType_LINE | aiPrimitiveType_POINT);
     scene = importer.ReadFile(options.source.c_str(), flags);
 
     // If the import failed, report it
@@ -1189,51 +1190,35 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
 
     if (submesh->indexData->indexCount >= 65536) // 32 bit index buffer
     {
-            submesh->indexData->indexBuffer = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(
-                    Ogre::HardwareIndexBuffer::IT_32BIT, submesh->indexData->indexCount, Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+        submesh->indexData->indexBuffer = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(
+                Ogre::HardwareIndexBuffer::IT_32BIT, submesh->indexData->indexCount, Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
 
-            Ogre::uint32* indexData = static_cast<Ogre::uint32*>(submesh->indexData->indexBuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
+        Ogre::uint32* indexData = static_cast<Ogre::uint32*>(submesh->indexData->indexBuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
 
-            for (size_t i=0; i < mesh->mNumFaces;++i)
-            {
-                    // this is a quick hack to filter lines, which are currently not supported
-                    if(faces->mNumIndices != 3) {
-                            *indexData++ = 0;
-                            *indexData++ = 0;
-                            *indexData++ = 0;
-                            faces++;
-                            continue;
-                    }
-                    *indexData++ = faces->mIndices[0];
-                    *indexData++ = faces->mIndices[1];
-                    *indexData++ = faces->mIndices[2];
+        for (size_t i=0; i < mesh->mNumFaces;++i)
+        {
+            *indexData++ = faces->mIndices[0];
+            *indexData++ = faces->mIndices[1];
+            *indexData++ = faces->mIndices[2];
 
-                    faces++;
-            }
+            faces++;
+        }
     }
     else // 16 bit index buffer
     {
-            submesh->indexData->indexBuffer = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(
-            Ogre::HardwareIndexBuffer::IT_16BIT, submesh->indexData->indexCount, Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+        submesh->indexData->indexBuffer = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(
+        Ogre::HardwareIndexBuffer::IT_16BIT, submesh->indexData->indexCount, Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
 
-            Ogre::uint16* indexData = static_cast<Ogre::uint16*>(submesh->indexData->indexBuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
+        Ogre::uint16* indexData = static_cast<Ogre::uint16*>(submesh->indexData->indexBuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
 
-            for (size_t i=0; i < mesh->mNumFaces;++i)
-            {
-                    // this is a quick hack to filter lines, which are currently not supported
-                    if(faces->mNumIndices != 3) {
-                            *indexData++ = 0;
-                            *indexData++ = 0;
-                            *indexData++ = 0;
-                            faces++;
-                            continue;
-                    }
-                    *indexData++ = faces->mIndices[0];
-                    *indexData++ = faces->mIndices[1];
-                    *indexData++ = faces->mIndices[2];
+        for (size_t i=0; i < mesh->mNumFaces;++i)
+        {
+            *indexData++ = faces->mIndices[0];
+            *indexData++ = faces->mIndices[1];
+            *indexData++ = faces->mIndices[2];
 
-                    faces++;
-            }
+            faces++;
+        }
     }
 
     submesh->indexData->indexBuffer->unlock();
