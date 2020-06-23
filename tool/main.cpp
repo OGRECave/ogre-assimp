@@ -85,7 +85,7 @@ void help(void)
     std::cout << "                      longer time frame than the animation actually plays for" << std::endl;
     std::cout << "-3ds_dae_fix        = When 3ds max exports as DAE it gets some of the transforms wrong, get around this" << std::endl;
     std::cout << "                      by using this option and a prior run with of the model exported as ASE" << std::endl;
-    std::cout << "-shadows            = set receive shadows = on in material script" << std::endl;
+    std::cout << "-max_edge_angle deg = When normals are generated, max angle between two faces to smooth over" << std::endl;
     std::cout << "sourcefile          = name of file to convert" << std::endl;
     std::cout << "destination         = optional name of directory to write to. If you don't" << std::endl;
     std::cout << "                      specify this the converter will use the same directory as the sourcefile."  << std::endl;
@@ -115,44 +115,29 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
     binOpt["-log"] = "ass.log";
     binOpt["-aniName"] = "";
     binOpt["-aniSpeedMod"] = "1.0";
+    binOpt["-max_edge_angle"] = "30";
 
     int startIndex = Ogre::findCommandLineOpts(numArgs, args, unOpt, binOpt);
-    Ogre::UnaryOptionList::iterator ui;
-    Ogre::BinaryOptionList::iterator bi;
 
     opts.params = AssimpLoader::LP_GENERATE_SINGLE_MESH;
 
-    ui = unOpt.find("-q");
-    if (ui->second)
+    if (unOpt["-q"])
     {
         opts.quietMode = true;
     }
-    ui = unOpt.find("-3ds_ani_fix");
-    if (ui->second)
+    if (unOpt["-3ds_ani_fix"])
     {
         opts.params |= AssimpLoader::LP_CUT_ANIMATION_WHERE_NO_FURTHER_CHANGE;
     }
-    ui = unOpt.find("-3ds_dae_fix");
-    if (ui->second)
+    if (unOpt["-3ds_dae_fix"])
     {
         opts.params |= AssimpLoader::LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS;
     }
 
-    bi = binOpt.find("-log");
-    if (!bi->second.empty())
-    {
-        opts.logFile = bi->second;
-    }
-    bi = binOpt.find("-aniSpeedMod");
-    if (!bi->second.empty())
-    {
-        opts.animationSpeedModifier = Ogre::StringConverter::parseReal(bi->second);
-    }
-    bi = binOpt.find("-aniName");
-    if (!bi->second.empty())
-    {
-        opts.customAnimationName = bi->second;
-    }
+    opts.logFile = binOpt["-log"];
+    Ogre::StringConverter::parse(binOpt["-aniSpeedMod"], opts.animationSpeedModifier);
+    opts.customAnimationName = binOpt["-aniName"];
+    Ogre::StringConverter::parse(binOpt["-max_edge_angle"], opts.maxEdgeAngle);
 
     // Source / dest
     if (numArgs > startIndex)

@@ -65,17 +65,16 @@ public:
         Ogre::String logFile;
         Ogre::String customAnimationName;
         int params;
-        Ogre::Real animationSpeedModifier;
+        float animationSpeedModifier;
+        float maxEdgeAngle;
 
         AssOptions()
         {
-            source = "";
-            dest = "";
             quietMode = false;
             logFile = "ass.log";
-            customAnimationName = "";
             params = LP_GENERATE_SINGLE_MESH;
             animationSpeedModifier = 1.0;
+            maxEdgeAngle = 30;
         };
     };
 
