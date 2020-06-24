@@ -1188,7 +1188,7 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
     submesh->indexData->indexStart = 0;
     submesh->indexData->indexCount = mesh->mNumFaces * 3;
 
-    if (submesh->indexData->indexCount >= 65536) // 32 bit index buffer
+    if (mesh->mNumVertices >= 65536) // 32 bit index buffer
     {
         submesh->indexData->indexBuffer = Ogre::HardwareBufferManager::getSingleton().createIndexBuffer(
                 Ogre::HardwareIndexBuffer::IT_32BIT, submesh->indexData->indexCount, Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
