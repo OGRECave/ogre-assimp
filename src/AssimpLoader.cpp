@@ -131,11 +131,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
     // If the import failed, report it
     if( !scene)
     {
-        if(!mQuietMode)
-        {
-            Ogre::LogManager::getSingleton().logMessage("AssImp importer failed with the following message:");
-            Ogre::LogManager::getSingleton().logMessage(importer.GetErrorString() );
-        }
+        Ogre::LogManager::getSingleton().logError("Assimp failed - " + Ogre::String(importer.GetErrorString()));
         return false;
     }
 
