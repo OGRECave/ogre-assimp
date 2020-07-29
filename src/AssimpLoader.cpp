@@ -71,6 +71,16 @@ THE SOFTWARE.
     typedef Ogre::Affine3 Affine3;
 #endif
 
+struct OgreLogStream : public Assimp::LogStream
+{
+    void write(const char* message)
+    {
+        Ogre::String msg(message);
+        Ogre::StringUtil::trim(msg);
+        Ogre::LogManager::getSingleton().logMessage("Assimp: " + msg);
+    }
+};
+
 Ogre::String toString(const aiColor4D& colour)
 {
     return Ogre::StringConverter::toString(Ogre::Real(colour.r)) + " " +
@@ -110,14 +120,9 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
         mPath = options.dest + "/";
     }
 
-    Assimp::DefaultLogger::create("asslogger.log",Assimp::Logger::VERBOSE);
-    Assimp::DefaultLogger::get()->info("Logging asses");
+    Assimp::DefaultLogger::create("");
+    Assimp::DefaultLogger::get()->attachStream(new OgreLogStream());
 
-    if(!mQuietMode)
-    {
-        Ogre::LogManager::getSingleton().logMessage("*** Loading ass file... ***");
-        Ogre::LogManager::getSingleton().logMessage("Filename " + options.source);
-    }
     Ogre::ResourceGroupManager::getSingleton().addResourceLocation(mPath, "FileSystem");
 
     const aiScene *scene;
@@ -160,10 +165,6 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
 
     loadDataFromNode(scene, scene->mRootNode, mPath);
 
-    if(!mQuietMode)
-    {
-        Ogre::LogManager::getSingleton().logMessage("*** Finished loading ass file ***");
-    }
     Assimp::DefaultLogger::kill();
 
     if(mSkeleton)
