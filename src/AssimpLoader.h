@@ -46,14 +46,6 @@ THE SOFTWARE.
 #include <assimp/postprocess.h>
 #include <map>
 
-//TODO: only need a bool ?
-struct boneNode
-{
-    aiNode* node;
-    aiNode* parent;
-    bool isNeeded;
-};
-
 class AssimpLoader
 {
 public:
@@ -114,7 +106,7 @@ private:
     void flagNodeAsNeeded(const char* name);
     bool isNodeNeeded(const char* name);
     void parseAnimation (const aiScene* mScene, int index, aiAnimation* anim);
-    typedef std::map<Ogre::String, boneNode> boneMapType;
+    typedef std::map<Ogre::String, bool> boneMapType;
     boneMapType boneMap;
     //aiNode* mSkeletonRootNode;
     int mLoaderParams;

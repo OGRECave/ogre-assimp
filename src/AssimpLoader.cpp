@@ -651,14 +651,7 @@ void AssimpLoader::markAllChildNodesAsNeeded(const aiNode *pNode)
 
 void AssimpLoader::grabNodeNamesFromNode(const aiScene* mScene, const aiNode* pNode)
 {
-    boneNode bNode;
-    bNode.node = const_cast<aiNode*>(pNode);
-    if(NULL != pNode->mParent)
-    {
-        bNode.parent = const_cast<aiNode*>(pNode->mParent);
-    }
-    bNode.isNeeded = false;
-    boneMap.insert(std::pair<Ogre::String, boneNode>(Ogre::String(pNode->mName.data), bNode));
+    boneMap.emplace(Ogre::String(pNode->mName.data), false);
     mBoneNodesByName[pNode->mName.data] = pNode;
     if(!mQuietMode)
     {
@@ -800,7 +793,7 @@ void AssimpLoader::flagNodeAsNeeded(const char* name)
     boneMapType::iterator iter = boneMap.find(Ogre::String(name));
     if( iter != boneMap.end())
     {
-        iter->second.isNeeded = true;
+        iter->second = true;
     }
 }
 
@@ -809,7 +802,7 @@ bool AssimpLoader::isNodeNeeded(const char* name)
     boneMapType::iterator iter = boneMap.find(Ogre::String(name));
     if( iter != boneMap.end())
     {
-        return iter->second.isNeeded;
+        return iter->second;
     }
     return false;
 }
