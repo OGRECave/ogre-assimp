@@ -65,11 +65,7 @@ THE SOFTWARE.
 #include <tuple>
 //#include "OgreXMLSkeletonSerializer.h"
 
-#if OGRE_VERSION < (1 << 16 | 11 << 8 | 0)
-    typedef Ogre::Matrix4 Affine3;
-#else
-    typedef Ogre::Affine3 Affine3;
-#endif
+typedef Ogre::Affine3 Affine3;
 
 struct OgreLogStream : public Assimp::LogStream
 {
@@ -201,19 +197,14 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
             mMesh->setSkeletonName(mBasename + ".skeleton");
         }
 
-        Ogre::Mesh::SubMeshIterator smIt = mMesh->getSubMeshIterator();
-        while (smIt.hasMoreElements())
+        for (auto sm : mMesh->getSubMeshes())
         {
-            Ogre::SubMesh* sm = smIt.getNext();
             if (!sm->useSharedVertices)
             {
-#if (OGRE_VERSION >  ((1 << 16) | (7 << 8) | 0))
+
                 Ogre::VertexDeclaration* newDcl =
                     sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation(), false);
-#else
-                Ogre::VertexDeclaration* newDcl =
-                    sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation());
-#endif
+
                 if (*newDcl != *(sm->vertexData->vertexDeclaration))
                 {
                     // Usages don't matter here since we're only exporting
@@ -265,11 +256,8 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
     mBonesByName.clear();
     mBoneNodesByName.clear();
     boneMap.clear();
-#if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
-    mSkeleton = Ogre::SkeletonPtr(NULL);
-#else
-    mSkeleton = Ogre::SkeletonPtr();
-#endif
+    mSkeleton.reset();
+
     mCustomAnimationName = "";
     // etc...
 
@@ -937,11 +925,8 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
     }
 
     Ogre::ResourceManager::ResourceCreateOrRetrieveResult status = omatMgr->createOrRetrieve(ReplaceSpaces(szPath.data), Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-#if (OGRE_VERSION < ((1 << 16) | (9 << 8) | 0))
-    Ogre::MaterialPtr omat = status.first;
-#else
     Ogre::MaterialPtr omat = Ogre::static_pointer_cast<Ogre::Material>(status.first);
-#endif
+
     if (!status.second)
         return omat;
 
