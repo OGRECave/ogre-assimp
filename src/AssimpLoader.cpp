@@ -96,7 +96,7 @@ AssimpLoader::~AssimpLoader()
 {
 }
 
-bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Ogre::SkeletonPtr *skeletonPtr)
+bool AssimpLoader::convert(const AssOptions options, const Ogre::MeshPtr& meshPtr,  Ogre::SkeletonPtr& skeletonPtr)
 {
     mAnimationSpeedModifier = options.animationSpeedModifier;
     mLoaderParams = options.params;
@@ -107,27 +107,17 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
         mNodeDerivedTransformByName.clear();
     }
 
-    Ogre::String extension;
-    Ogre::StringUtil::splitFullFilename(options.source, mBasename, extension, mPath);
-    mBasename = mBasename + "_" + extension;
-
-    if(!options.dest.empty())
-    {
-        mPath = options.dest + "/";
-    }
+    Ogre::String basename, extension;
+    Ogre::StringUtil::splitBaseFilename(meshPtr->getName(), basename, extension);
 
     Assimp::DefaultLogger::create("");
     Assimp::DefaultLogger::get()->attachStream(new OgreLogStream());
-
-    Ogre::ResourceGroupManager::getSingleton().addResourceLocation(mPath, "FileSystem");
-
-    const aiScene *scene;
 
     Assimp::Importer importer;
     Ogre::uint32 flags = aiProcessPreset_TargetRealtime_Quality | aiProcess_TransformUVCoords | aiProcess_FlipUVs;
     importer.SetPropertyFloat("PP_GSN_MAX_SMOOTHING_ANGLE", options.maxEdgeAngle);
     importer.SetPropertyInteger("PP_SBP_REMOVE", aiPrimitiveType_LINE | aiPrimitiveType_POINT);
-    scene = importer.ReadFile(options.source.c_str(), flags);
+    const aiScene* scene = importer.ReadFile(options.source.c_str(), flags);
 
     // If the import failed, report it
     if( !scene)
@@ -143,7 +133,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
 
     if(mBonesByName.size())
     {
-        mSkeleton = Ogre::SkeletonManager::getSingleton().create("conversion", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+        mSkeleton = Ogre::SkeletonManager::getSingleton().create(basename+".skeleton", Ogre::RGN_DEFAULT, true);
 
         msBoneCount = 0;
         createBonesFromNode(scene, scene->mRootNode);
@@ -159,8 +149,8 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
         }
     }
 
-    mMesh = Ogre::MeshManager::getSingleton().createManual("conversion", Ogre::RGN_DEFAULT);
-    loadDataFromNode(scene, scene->mRootNode, mPath);
+    mMesh = meshPtr;
+    loadDataFromNode(scene, scene->mRootNode);
 
     Assimp::DefaultLogger::kill();
 
@@ -180,20 +170,8 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
             assert(pBone);
         }
 
-		if(skeletonPtr)
-			(*skeletonPtr) = mSkeleton;
-		else
-		{
-			Ogre::SkeletonSerializer binSer;
-			binSer.exportSkeleton(mSkeleton.get(), mPath + mBasename + ".skeleton");
-		}
-    }
-
-    Ogre::MeshSerializer meshSer;
-
-    if(mBonesByName.size())
-    {
-        mMesh->setSkeletonName(mBasename + ".skeleton");
+		skeletonPtr = mSkeleton;
+        mMesh->setSkeletonName(mSkeleton->getName());
     }
 
     for (auto sm : mMesh->getSubMeshes())
@@ -206,40 +184,10 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
 
             if (*newDcl != *(sm->vertexData->vertexDeclaration))
             {
-                // Usages don't matter here since we're only exporting
-                Ogre::BufferUsageList bufferUsages;
-                for (size_t u = 0; u <= newDcl->getMaxSource(); ++u)
-                    bufferUsages.push_back(Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
-                sm->vertexData->reorganiseBuffers(newDcl, bufferUsages);
+                sm->vertexData->reorganiseBuffers(newDcl);
             }
         }
     }
-
-    if(meshPtr)
-        (*meshPtr) = mMesh;
-    else
-        meshSer.exportMesh(mMesh.get(), mPath + mBasename + ".mesh");
-
-
-    // serialise the materials
-    Ogre::MaterialSerializer ms;
-    std::vector<Ogre::String> exportedNames;
-
-    // queue up the materials for serialise
-    Ogre::MaterialManager *mmptr = Ogre::MaterialManager::getSingletonPtr();
-    for(Ogre::SubMesh* sm : mMesh->getSubMeshes())
-    {
-        Ogre::String matName(sm->getMaterialName());
-        if (std::find(exportedNames.begin(), exportedNames.end(), matName) == exportedNames.end())
-        {
-            Ogre::MaterialPtr materialPtr = mmptr->getByName(matName);
-            ms.queueForExport(materialPtr);
-            exportedNames.push_back(matName);
-        }
-    }
-
-    if(exportedNames.size()&&!meshPtr)
-        ms.exportQueued(mPath + mBasename + ".material", true);
 
 
     mMesh->load();
@@ -252,10 +200,6 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
     mSkeleton.reset();
 
     mCustomAnimationName = "";
-    // etc...
-
-    Ogre::MeshManager::getSingleton().removeUnreferencedResources();
-    Ogre::SkeletonManager::getSingleton().removeUnreferencedResources();
 
     return true;
 }
@@ -870,7 +814,7 @@ Ogre::String ReplaceSpaces(const Ogre::String& s)
     return res;
 }
 
-Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat, const Ogre::String& mDir)
+Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat)
 {
     static int dummyMatCount = 0;
 
@@ -991,7 +935,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat,
 }
 
 
-bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::MeshPtr mMesh, Ogre::AxisAlignedBox& mAAB, const Ogre::String& mDir)
+bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::MeshPtr mMesh, Ogre::AxisAlignedBox& mAAB)
 {
     // if animated all submeshes must have bone weights
     if(mBonesByName.size() && !mesh->HasBones())
@@ -1003,7 +947,7 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
         return false;
     }
 
-    Ogre::MaterialPtr matptr = createMaterial(mesh->mMaterialIndex, mat, mDir);
+    Ogre::MaterialPtr matptr = createMaterial(mesh->mMaterialIndex, mat);
 
     // now begin the object definition
     // We create a submesh per material
@@ -1222,7 +1166,7 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
     return true;
 }
 
-void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode, const Ogre::String& mDir)
+void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode)
 {
     if(pNode->mNumMeshes > 0)
     {
@@ -1238,7 +1182,7 @@ void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode,
 
             // Create a material instance for the mesh.
             const aiMaterial *pAIMaterial = mScene->mMaterials[ pAIMesh->mMaterialIndex ];
-            createSubMesh(pNode->mName.data, idx, pNode, pAIMesh, pAIMaterial, mMesh, mAAB, mDir);
+            createSubMesh(pNode->mName.data, idx, pNode, pAIMesh, pAIMaterial, mMesh, mAAB);
         }
 
         // We must indicate the bounding box
@@ -1250,6 +1194,6 @@ void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode,
     for ( unsigned int childIdx=0; childIdx<pNode->mNumChildren; childIdx++ )
     {
         const aiNode *pChildNode = pNode->mChildren[ childIdx ];
-        loadDataFromNode(mScene, pChildNode, mDir);
+        loadDataFromNode(mScene, pChildNode);
     }
 }

@@ -225,9 +225,42 @@ int main(int numargs, char** args)
         if(opts.quietMode)
             opts.params |= AssimpLoader::LP_QUIET_MODE;
 
-        AssimpLoader loader;
-        loader.convert(opts);
+        Ogre::String basename, ext, path;
+        Ogre::StringUtil::splitFullFilename(opts.source, basename, ext, path);
+        Ogre::ResourceGroupManager::getSingleton().addResourceLocation(path, "FileSystem");
 
+        Ogre::MeshPtr mesh = Ogre::MeshManager::getSingleton().createManual(basename+"."+ext, Ogre::RGN_DEFAULT);
+        Ogre::SkeletonPtr skeleton;
+
+        AssimpLoader loader;
+        loader.convert(opts, mesh, skeleton);
+
+        if(!opts.dest.empty())
+        {
+            path = opts.dest + "/";
+        }
+
+        Ogre::MeshSerializer meshSer;
+        meshSer.exportMesh(mesh.get(), path + basename + ".mesh");
+
+        if(skeleton)
+        {
+            Ogre::SkeletonSerializer binSer;
+            binSer.exportSkeleton(skeleton.get(), path + skeleton->getName());
+        }
+
+        // serialise the materials
+        std::set<Ogre::String> exportNames;
+        for(Ogre::SubMesh* sm : mesh->getSubMeshes())
+            exportNames.insert(sm->getMaterialName());
+
+        // queue up the materials for serialise
+        Ogre::MaterialSerializer ms;
+        for(const Ogre::String& name : exportNames)
+            ms.queueForExport(Ogre::MaterialManager::getSingleton().getByName(name));
+
+        if(!exportNames.empty())
+            ms.exportQueued(path + basename + ".material");
     }
     catch(Ogre::Exception& e)
     {

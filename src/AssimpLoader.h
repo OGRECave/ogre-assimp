@@ -87,19 +87,17 @@ public:
     AssimpLoader();
     virtual ~AssimpLoader();
 
-    bool convert(const AssOptions options, Ogre::MeshPtr *meshPtr = NULL, Ogre::SkeletonPtr *skeletonPtr = NULL);
-
-    const Ogre::String& getBasename(){ return mBasename; }
+    bool convert(const AssOptions options, const Ogre::MeshPtr& meshPtr, Ogre::SkeletonPtr& skeletonPtr);
 
 private:
-    bool createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::MeshPtr mMesh, Ogre::AxisAlignedBox& mAAB, const Ogre::String& mDir);
-    Ogre::MaterialPtr createMaterial(int index, const aiMaterial* mat, const Ogre::String& mDir);
+    bool createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::MeshPtr mMesh, Ogre::AxisAlignedBox& mAAB);
+    Ogre::MaterialPtr createMaterial(int index, const aiMaterial* mat);
     void grabNodeNamesFromNode(const aiScene* mScene,  const aiNode* pNode);
     void grabBoneNamesFromNode(const aiScene* mScene,  const aiNode* pNode);
     void computeNodesDerivedTransform(const aiScene* mScene,  const aiNode *pNode, const aiMatrix4x4 accTransform);
     void createBonesFromNode(const aiScene* mScene,  const aiNode* pNode);
     void createBoneHiearchy(const aiScene* mScene,  const aiNode *pNode);
-    void loadDataFromNode(const aiScene* mScene,  const aiNode *pNode, const Ogre::String& mDir);
+    void loadDataFromNode(const aiScene* mScene,  const aiNode *pNode);
     void markAllChildNodesAsNeeded(const aiNode *pNode);
     void flagNodeAsNeeded(const char* name);
     bool isNodeNeeded(const char* name);
@@ -108,8 +106,7 @@ private:
     boneMapType boneMap;
     //aiNode* mSkeletonRootNode;
     int mLoaderParams;
-    Ogre::String mBasename;
-    Ogre::String mPath;
+
     Ogre::String mCustomAnimationName;
 
     typedef std::map<Ogre::String, const aiNode*> BoneNodeMap;
