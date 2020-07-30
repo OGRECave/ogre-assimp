@@ -159,6 +159,7 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
         }
     }
 
+    mMesh = Ogre::MeshManager::getSingleton().createManual("conversion", Ogre::RGN_DEFAULT);
     loadDataFromNode(scene, scene->mRootNode, mPath);
 
     Assimp::DefaultLogger::kill();
@@ -189,70 +190,62 @@ bool AssimpLoader::convert(const AssOptions options, Ogre::MeshPtr *meshPtr,  Og
     }
 
     Ogre::MeshSerializer meshSer;
-    for(MeshVector::iterator it = mMeshes.begin(); it != mMeshes.end(); ++it)
+
+    if(mBonesByName.size())
     {
-        Ogre::MeshPtr mMesh = *it;
-        if(mBonesByName.size())
-        {
-            mMesh->setSkeletonName(mBasename + ".skeleton");
-        }
+        mMesh->setSkeletonName(mBasename + ".skeleton");
+    }
 
-        for (auto sm : mMesh->getSubMeshes())
+    for (auto sm : mMesh->getSubMeshes())
+    {
+        if (!sm->useSharedVertices)
         {
-            if (!sm->useSharedVertices)
+
+            Ogre::VertexDeclaration* newDcl =
+                sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation(), false);
+
+            if (*newDcl != *(sm->vertexData->vertexDeclaration))
             {
-
-                Ogre::VertexDeclaration* newDcl =
-                    sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation(), false);
-
-                if (*newDcl != *(sm->vertexData->vertexDeclaration))
-                {
-                    // Usages don't matter here since we're only exporting
-                    Ogre::BufferUsageList bufferUsages;
-                    for (size_t u = 0; u <= newDcl->getMaxSource(); ++u)
-                        bufferUsages.push_back(Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
-                    sm->vertexData->reorganiseBuffers(newDcl, bufferUsages);
-                }
+                // Usages don't matter here since we're only exporting
+                Ogre::BufferUsageList bufferUsages;
+                for (size_t u = 0; u <= newDcl->getMaxSource(); ++u)
+                    bufferUsages.push_back(Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+                sm->vertexData->reorganiseBuffers(newDcl, bufferUsages);
             }
         }
-
-		if(meshPtr)
-			(*meshPtr) = mMesh;
-		else
-			meshSer.exportMesh(mMesh.get(), mPath + mBasename + ".mesh");
     }
+
+    if(meshPtr)
+        (*meshPtr) = mMesh;
+    else
+        meshSer.exportMesh(mMesh.get(), mPath + mBasename + ".mesh");
 
 
     // serialise the materials
     Ogre::MaterialSerializer ms;
     std::vector<Ogre::String> exportedNames;
 
-    for(MeshVector::iterator it = mMeshes.begin(); it != mMeshes.end(); ++it)
+    // queue up the materials for serialise
+    Ogre::MaterialManager *mmptr = Ogre::MaterialManager::getSingletonPtr();
+    for(Ogre::SubMesh* sm : mMesh->getSubMeshes())
     {
-        Ogre::MeshPtr mMesh = *it;
-
-        // queue up the materials for serialise
-        Ogre::MaterialManager *mmptr = Ogre::MaterialManager::getSingletonPtr();
-        for(Ogre::SubMesh* sm : mMesh->getSubMeshes())
+        Ogre::String matName(sm->getMaterialName());
+        if (std::find(exportedNames.begin(), exportedNames.end(), matName) == exportedNames.end())
         {
-            Ogre::String matName(sm->getMaterialName());
-            if (std::find(exportedNames.begin(), exportedNames.end(), matName) == exportedNames.end())
-            {
-                Ogre::MaterialPtr materialPtr = mmptr->getByName(matName);
-                ms.queueForExport(materialPtr);
-                exportedNames.push_back(matName);
-            }
+            Ogre::MaterialPtr materialPtr = mmptr->getByName(matName);
+            ms.queueForExport(materialPtr);
+            exportedNames.push_back(matName);
         }
     }
 
     if(exportedNames.size()&&!meshPtr)
         ms.exportQueued(mPath + mBasename + ".material", true);
 
-    for(auto mesh: mMeshes)
-        mesh->load();
+
+    mMesh->load();
 
     // clean up
-    mMeshes.clear();
+    mMesh.reset();
     mBonesByName.clear();
     mBoneNodesByName.clear();
     boneMap.clear();
@@ -1233,23 +1226,7 @@ void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode,
 {
     if(pNode->mNumMeshes > 0)
     {
-        Ogre::MeshPtr mesh;
-        Ogre::AxisAlignedBox mAAB;
-
-        if(mLoaderParams & LP_GENERATE_SINGLE_MESH)
-        {
-            if(mMeshes.size() == 0)
-            {
-                mesh = Ogre::MeshManager::getSingleton().createManual("ROOTMesh", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-
-                mMeshes.push_back(mesh);
-            }
-            else
-            {
-                mesh = mMeshes[0];
-                mAAB = mesh->getBounds();
-            }
-        }
+        Ogre::AxisAlignedBox mAAB = mMesh->getBounds();
 
         for ( unsigned int idx=0; idx<pNode->mNumMeshes; ++idx )
         {
@@ -1261,12 +1238,12 @@ void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode,
 
             // Create a material instance for the mesh.
             const aiMaterial *pAIMaterial = mScene->mMaterials[ pAIMesh->mMaterialIndex ];
-            createSubMesh(pNode->mName.data, idx, pNode, pAIMesh, pAIMaterial, mesh, mAAB, mDir);
+            createSubMesh(pNode->mName.data, idx, pNode, pAIMesh, pAIMaterial, mMesh, mAAB, mDir);
         }
 
         // We must indicate the bounding box
-        mesh->_setBounds(mAAB);
-        mesh->_setBoundingSphereRadius((mAAB.getMaximum()- mAAB.getMinimum()).length()/2);
+        mMesh->_setBounds(mAAB);
+        mMesh->_setBoundingSphereRadius((mAAB.getMaximum()- mAAB.getMinimum()).length()/2);
     }
 
     // Traverse all child nodes of the current node instance

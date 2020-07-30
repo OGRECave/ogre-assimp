@@ -64,7 +64,7 @@ public:
         {
             quietMode = false;
             logFile = "ass.log";
-            params = LP_GENERATE_SINGLE_MESH;
+            params = 0;
             animationSpeedModifier = 1.0;
             maxEdgeAngle = 30;
         };
@@ -72,18 +72,16 @@ public:
 
     enum LoaderParams
     {
-        LP_GENERATE_SINGLE_MESH = 1<<0,
-
         // 3ds max exports the animation over a longer time frame than the animation actually plays for
         // this is a fix for that
-        LP_CUT_ANIMATION_WHERE_NO_FURTHER_CHANGE = 1<<2,
+        LP_CUT_ANIMATION_WHERE_NO_FURTHER_CHANGE = 1<<0,
 
         // when 3ds max exports as DAE it gets some of the transforms wrong, get around this by using
         // this option and a prior run with of the model exported as ASE
-        LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS = 1<<3,
+        LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS = 1<<1,
 
         // Quiet mode - don't output anything
-        LP_QUIET_MODE = 1<<4
+        LP_QUIET_MODE = 1<<2
     };
 
     AssimpLoader();
@@ -123,9 +121,7 @@ private:
     typedef std::map<Ogre::String, aiMatrix4x4> NodeTransformMap;
     NodeTransformMap mNodeDerivedTransformByName;
 
-    typedef std::vector<Ogre::MeshPtr> MeshVector;
-    MeshVector mMeshes;
-
+    Ogre::MeshPtr mMesh;
     Ogre::SkeletonPtr mSkeleton;
 
     static int msBoneCount;

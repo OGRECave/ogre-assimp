@@ -119,8 +119,6 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
 
     int startIndex = Ogre::findCommandLineOpts(numArgs, args, unOpt, binOpt);
 
-    opts.params = AssimpLoader::LP_GENERATE_SINGLE_MESH;
-
     if (unOpt["-q"])
     {
         opts.quietMode = true;
