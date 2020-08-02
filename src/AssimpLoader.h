@@ -40,6 +40,11 @@ THE SOFTWARE.
 
 #include <assimp/scene.h>
 
+namespace Assimp
+{
+    class Importer;
+}
+
 class AssimpLoader
 {
 public:
@@ -69,7 +74,11 @@ public:
     bool load(const Ogre::String& source, Ogre::Mesh* mesh, Ogre::SkeletonPtr& skeletonPtr,
               const Options& options = Options());
 
+    bool load(const Ogre::DataStreamPtr& source, const Ogre::String& type, Ogre::Mesh* mesh,
+              Ogre::SkeletonPtr& skeletonPtr, const Options& options = Options());
+
 private:
+    bool _load(const char* name, Assimp::Importer& importer, Ogre::Mesh* mesh, Ogre::SkeletonPtr& skeletonPtr, const Options& options);
     bool createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::Mesh* mMesh, Ogre::AxisAlignedBox& mAAB);
     Ogre::MaterialPtr createMaterial(int index, const aiMaterial* mat);
     void grabNodeNamesFromNode(const aiScene* mScene,  const aiNode* pNode);

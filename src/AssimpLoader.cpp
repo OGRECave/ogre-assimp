@@ -38,6 +38,7 @@ THE SOFTWARE.
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
 #include <assimp/DefaultLogger.hpp>
+#include <assimp/MemoryIOWrapper.h>
 
 #include <Ogre.h>
 
@@ -57,33 +58,39 @@ int AssimpLoader::msBoneCount = 0;
 
 AssimpLoader::AssimpLoader()
 {
-    //mSkeletonRootNode = NULL;
+    Assimp::DefaultLogger::create("");
+    Assimp::DefaultLogger::get()->attachStream(new OgreLogStream());
 }
 
 AssimpLoader::~AssimpLoader()
 {
 }
 
-bool AssimpLoader::load(const Ogre::String& source, Ogre::Mesh* meshPtr, Ogre::SkeletonPtr& skeletonPtr,
+bool AssimpLoader::load(const Ogre::DataStreamPtr& source, const Ogre::String& type, Ogre::Mesh* mesh,
+                        Ogre::SkeletonPtr& skeletonPtr, const Options& options)
+{
+    Assimp::Importer importer;
+    Ogre::MemoryDataStream buffer(source);
+    importer.SetIOHandler(new Assimp::MemoryIOSystem(buffer.getPtr(), buffer.size(), 0));
+    auto name = Ogre::StringUtil::format(AI_MEMORYIO_MAGIC_FILENAME ".%s", type.c_str());
+    _load(name.c_str(), importer, mesh, skeletonPtr, options);
+    return true;
+}
+
+bool AssimpLoader::load(const Ogre::String& source, Ogre::Mesh* mesh, Ogre::SkeletonPtr& skeletonPtr,
                         const AssimpLoader::Options& options)
 {
-    mAnimationSpeedModifier = options.animationSpeedModifier;
-    mLoaderParams = options.params;
-    mQuietMode = ((mLoaderParams & LP_QUIET_MODE) == 0) ? false : true;
-    mCustomAnimationName = options.customAnimationName;
-    mNodeDerivedTransformByName.clear();
-
-    Ogre::String basename, extension;
-    Ogre::StringUtil::splitBaseFilename(meshPtr->getName(), basename, extension);
-
-    Assimp::DefaultLogger::create("");
-    Assimp::DefaultLogger::get()->attachStream(new OgreLogStream());
-
     Assimp::Importer importer;
+    _load(source.c_str(), importer, mesh, skeletonPtr, options);
+    return true;
+}
+
+bool AssimpLoader::_load(const char* name, Assimp::Importer& importer, Ogre::Mesh* mesh, Ogre::SkeletonPtr& skeletonPtr, const Options& options)
+{
     Ogre::uint32 flags = aiProcessPreset_TargetRealtime_Quality | aiProcess_TransformUVCoords | aiProcess_FlipUVs;
     importer.SetPropertyFloat("PP_GSN_MAX_SMOOTHING_ANGLE", options.maxEdgeAngle);
     importer.SetPropertyInteger("PP_SBP_REMOVE", aiPrimitiveType_LINE | aiPrimitiveType_POINT);
-    const aiScene* scene = importer.ReadFile(source.c_str(), flags);
+    const aiScene* scene = importer.ReadFile(name, flags);
 
     // If the import failed, report it
     if( !scene)
@@ -91,6 +98,15 @@ bool AssimpLoader::load(const Ogre::String& source, Ogre::Mesh* meshPtr, Ogre::S
         Ogre::LogManager::getSingleton().logError("Assimp failed - " + Ogre::String(importer.GetErrorString()));
         return false;
     }
+
+    mAnimationSpeedModifier = options.animationSpeedModifier;
+    mLoaderParams = options.params;
+    mQuietMode = ((mLoaderParams & LP_QUIET_MODE) == 0) ? false : true;
+    mCustomAnimationName = options.customAnimationName;
+    mNodeDerivedTransformByName.clear();
+
+    Ogre::String basename, extension;
+    Ogre::StringUtil::splitBaseFilename(mesh->getName(), basename, extension);
 
     grabNodeNamesFromNode(scene, scene->mRootNode);
     grabBoneNamesFromNode(scene, scene->mRootNode);
@@ -115,7 +131,7 @@ bool AssimpLoader::load(const Ogre::String& source, Ogre::Mesh* meshPtr, Ogre::S
         }
     }
 
-    loadDataFromNode(scene, scene->mRootNode, meshPtr);
+    loadDataFromNode(scene, scene->mRootNode, mesh);
 
     Assimp::DefaultLogger::kill();
 
@@ -136,16 +152,16 @@ bool AssimpLoader::load(const Ogre::String& source, Ogre::Mesh* meshPtr, Ogre::S
         }
 
 		skeletonPtr = mSkeleton;
-        meshPtr->setSkeletonName(mSkeleton->getName());
+        mesh->setSkeletonName(mSkeleton->getName());
     }
 
-    for (auto sm : meshPtr->getSubMeshes())
+    for (auto sm : mesh->getSubMeshes())
     {
         if (!sm->useSharedVertices)
         {
 
             Ogre::VertexDeclaration* newDcl =
-                sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(meshPtr->hasSkeleton(), meshPtr->hasVertexAnimation(), false);
+                sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mesh->hasSkeleton(), mesh->hasVertexAnimation(), false);
 
             if (*newDcl != *(sm->vertexData->vertexDeclaration))
             {
