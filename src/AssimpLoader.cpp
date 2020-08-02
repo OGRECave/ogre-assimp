@@ -64,7 +64,8 @@ AssimpLoader::~AssimpLoader()
 {
 }
 
-bool AssimpLoader::convert(const AssOptions options, const Ogre::MeshPtr& meshPtr,  Ogre::SkeletonPtr& skeletonPtr)
+bool AssimpLoader::load(const Ogre::String& source, Ogre::Mesh* meshPtr, Ogre::SkeletonPtr& skeletonPtr,
+                        const AssimpLoader::Options& options)
 {
     mAnimationSpeedModifier = options.animationSpeedModifier;
     mLoaderParams = options.params;
@@ -82,7 +83,7 @@ bool AssimpLoader::convert(const AssOptions options, const Ogre::MeshPtr& meshPt
     Ogre::uint32 flags = aiProcessPreset_TargetRealtime_Quality | aiProcess_TransformUVCoords | aiProcess_FlipUVs;
     importer.SetPropertyFloat("PP_GSN_MAX_SMOOTHING_ANGLE", options.maxEdgeAngle);
     importer.SetPropertyInteger("PP_SBP_REMOVE", aiPrimitiveType_LINE | aiPrimitiveType_POINT);
-    const aiScene* scene = importer.ReadFile(options.source.c_str(), flags);
+    const aiScene* scene = importer.ReadFile(source.c_str(), flags);
 
     // If the import failed, report it
     if( !scene)
@@ -114,8 +115,7 @@ bool AssimpLoader::convert(const AssOptions options, const Ogre::MeshPtr& meshPt
         }
     }
 
-    mMesh = meshPtr;
-    loadDataFromNode(scene, scene->mRootNode);
+    loadDataFromNode(scene, scene->mRootNode, meshPtr);
 
     Assimp::DefaultLogger::kill();
 
@@ -136,16 +136,16 @@ bool AssimpLoader::convert(const AssOptions options, const Ogre::MeshPtr& meshPt
         }
 
 		skeletonPtr = mSkeleton;
-        mMesh->setSkeletonName(mSkeleton->getName());
+        meshPtr->setSkeletonName(mSkeleton->getName());
     }
 
-    for (auto sm : mMesh->getSubMeshes())
+    for (auto sm : meshPtr->getSubMeshes())
     {
         if (!sm->useSharedVertices)
         {
 
             Ogre::VertexDeclaration* newDcl =
-                sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(mMesh->hasSkeleton(), mMesh->hasVertexAnimation(), false);
+                sm->vertexData->vertexDeclaration->getAutoOrganisedDeclaration(meshPtr->hasSkeleton(), meshPtr->hasVertexAnimation(), false);
 
             if (*newDcl != *(sm->vertexData->vertexDeclaration))
             {
@@ -154,11 +154,7 @@ bool AssimpLoader::convert(const AssOptions options, const Ogre::MeshPtr& meshPt
         }
     }
 
-
-    mMesh->load();
-
     // clean up
-    mMesh.reset();
     mBonesByName.clear();
     mBoneNodesByName.clear();
     boneMap.clear();
@@ -900,7 +896,7 @@ Ogre::MaterialPtr AssimpLoader::createMaterial(int index, const aiMaterial* mat)
 }
 
 
-bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::MeshPtr mMesh, Ogre::AxisAlignedBox& mAAB)
+bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::Mesh* mMesh, Ogre::AxisAlignedBox& mAAB)
 {
     // if animated all submeshes must have bone weights
     if(mBonesByName.size() && !mesh->HasBones())
@@ -1131,11 +1127,11 @@ bool AssimpLoader::createSubMesh(const Ogre::String& name, int index, const aiNo
     return true;
 }
 
-void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode)
+void AssimpLoader::loadDataFromNode(const aiScene* mScene, const aiNode *pNode, Ogre::Mesh* mesh)
 {
     if(pNode->mNumMeshes > 0)
     {
-        Ogre::AxisAlignedBox mAAB = mMesh->getBounds();
+        Ogre::AxisAlignedBox mAAB = mesh->getBounds();
 
         for ( unsigned int idx=0; idx<pNode->mNumMeshes; ++idx )
         {
@@ -1147,18 +1143,18 @@ void AssimpLoader::loadDataFromNode(const aiScene* mScene,  const aiNode *pNode)
 
             // Create a material instance for the mesh.
             const aiMaterial *pAIMaterial = mScene->mMaterials[ pAIMesh->mMaterialIndex ];
-            createSubMesh(pNode->mName.data, idx, pNode, pAIMesh, pAIMaterial, mMesh, mAAB);
+            createSubMesh(pNode->mName.data, idx, pNode, pAIMesh, pAIMaterial, mesh, mAAB);
         }
 
         // We must indicate the bounding box
-        mMesh->_setBounds(mAAB);
-        mMesh->_setBoundingSphereRadius((mAAB.getMaximum()- mAAB.getMinimum()).length()/2);
+        mesh->_setBounds(mAAB);
+        mesh->_setBoundingSphereRadius((mAAB.getMaximum()- mAAB.getMinimum()).length()/2);
     }
 
     // Traverse all child nodes of the current node instance
     for ( unsigned int childIdx=0; childIdx<pNode->mNumChildren; childIdx++ )
     {
         const aiNode *pChildNode = pNode->mChildren[ childIdx ];
-        loadDataFromNode(mScene, pChildNode);
+        loadDataFromNode(mScene, pChildNode, mesh);
     }
 }

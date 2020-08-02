@@ -78,7 +78,7 @@ void help(void)
     std::cout << std::endl << "Usage: OgreAssimpConverter [options] sourcefile [destination] " << std::endl;
     std::cout << std::endl << "Available options:" << std::endl;
     std::cout << "-q                  = Quiet mode, less output" << std::endl;
-    std::cout << "-log filename       = name of the log file (default: 'ass.log')" << std::endl;
+    std::cout << "-log filename       = name of the log file (default: 'OgreAssimp.log')" << std::endl;
     std::cout << "-aniSpeedMod value  = Factor to scale the animation speed - (default: '1.0')" << std::endl;
     std::cout << "                      (double between 0 and 1)" << std::endl;
     std::cout << "-3ds_ani_fix        = Fix for the fact that 3ds max exports the animation over a" << std::endl;
@@ -90,14 +90,23 @@ void help(void)
     std::cout << std::endl;
 }
 
-AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
+struct AssOptions
 {
-    AssimpLoader::AssOptions opts;
-    opts.quietMode = false;
-    opts.logFile = "ass.log";
-    opts.customAnimationName = "";
-    opts.dest = "";
-    opts.animationSpeedModifier = 1.0;
+    Ogre::String source;
+    Ogre::String dest;
+    Ogre::String logFile;
+
+    AssimpLoader::Options options;
+
+    AssOptions()
+    {
+        logFile = "OgreAssimp.log";
+    };
+};
+
+AssOptions parseArgs(int numArgs, char **args)
+{
+    AssOptions opts;
 
     // ignore program name
     char* source = 0;
@@ -109,7 +118,7 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
 
     unOpt["-q"] = false;
     unOpt["-3ds_ani_fix"] = false;
-    binOpt["-log"] = "ass.log";
+    binOpt["-log"] = opts.logFile;
     binOpt["-aniName"] = "";
     binOpt["-aniSpeedMod"] = "1.0";
     binOpt["-max_edge_angle"] = "30";
@@ -118,17 +127,17 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
 
     if (unOpt["-q"])
     {
-        opts.quietMode = true;
+        opts.options.params |= AssimpLoader::LP_QUIET_MODE;
     }
     if (unOpt["-3ds_ani_fix"])
     {
-        opts.params |= AssimpLoader::LP_CUT_ANIMATION_WHERE_NO_FURTHER_CHANGE;
+        opts.options.params |= AssimpLoader::LP_CUT_ANIMATION_WHERE_NO_FURTHER_CHANGE;
     }
 
     opts.logFile = binOpt["-log"];
-    Ogre::StringConverter::parse(binOpt["-aniSpeedMod"], opts.animationSpeedModifier);
-    opts.customAnimationName = binOpt["-aniName"];
-    Ogre::StringConverter::parse(binOpt["-max_edge_angle"], opts.maxEdgeAngle);
+    Ogre::StringConverter::parse(binOpt["-aniSpeedMod"], opts.options.animationSpeedModifier);
+    opts.options.customAnimationName = binOpt["-aniName"];
+    Ogre::StringConverter::parse(binOpt["-max_edge_angle"], opts.options.maxEdgeAngle);
 
     // Source / dest
     if (numArgs > startIndex)
@@ -154,14 +163,14 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
         opts.dest = dest;
     }
 
-    if (!opts.quietMode)
+    if (!unOpt["-q"])
     {
         std::cout << std::endl;
         std::cout << "-- OPTIONS --" << std::endl;
 
         std::cout << "source file               = " << opts.source << std::endl;
         std::cout << "destination               = " << opts.dest << std::endl;
-        std::cout << "animation speed modifier  = " << opts.animationSpeedModifier << std::endl;
+        std::cout << "animation speed modifier  = " << opts.options.animationSpeedModifier << std::endl;
         std::cout << "log file                  = " << opts.logFile << std::endl;
 
         std::cout << "-- END OPTIONS --" << std::endl;
@@ -190,7 +199,7 @@ int main(int numargs, char** args)
         // this log catches output from the parseArgs call and routes it to stdout only
         logMgr->createLog("Temporary log", false, true, true);
 
-        AssimpLoader::AssOptions opts = parseArgs(numargs, args);
+        AssOptions opts = parseArgs(numargs, args);
         // use the log specified by the cmdline params
         logMgr->setDefaultLog(logMgr->createLog(opts.logFile, false, true));
         // get rid of the temporary log as we use the new log now
@@ -215,9 +224,6 @@ int main(int numargs, char** args)
 
         texMgr = new Ogre::DefaultTextureManager();
 
-        if(opts.quietMode)
-            opts.params |= AssimpLoader::LP_QUIET_MODE;
-
         Ogre::String basename, ext, path;
         Ogre::StringUtil::splitFullFilename(opts.source, basename, ext, path);
         Ogre::ResourceGroupManager::getSingleton().addResourceLocation(path, "FileSystem");
@@ -226,7 +232,7 @@ int main(int numargs, char** args)
         Ogre::SkeletonPtr skeleton;
 
         AssimpLoader loader;
-        loader.convert(opts, mesh, skeleton);
+        loader.load(opts.source, mesh.get(), skeleton, opts.options);
 
         if(!opts.dest.empty())
         {

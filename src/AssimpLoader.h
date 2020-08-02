@@ -43,27 +43,6 @@ THE SOFTWARE.
 class AssimpLoader
 {
 public:
-    struct AssOptions
-    {
-        Ogre::String source;
-        Ogre::String dest;
-        bool quietMode;
-        Ogre::String logFile;
-        Ogre::String customAnimationName;
-        int params;
-        float animationSpeedModifier;
-        float maxEdgeAngle;
-
-        AssOptions()
-        {
-            quietMode = false;
-            logFile = "ass.log";
-            params = 0;
-            animationSpeedModifier = 1.0;
-            maxEdgeAngle = 30;
-        };
-    };
-
     enum LoaderParams
     {
         // 3ds max exports the animation over a longer time frame than the animation actually plays for
@@ -74,20 +53,31 @@ public:
         LP_QUIET_MODE = 1<<1
     };
 
+    struct Options
+    {
+        float animationSpeedModifier;
+        int params;
+        Ogre::String customAnimationName;
+        float maxEdgeAngle;
+
+        Options() : animationSpeedModifier(1), params(0), maxEdgeAngle(30) {}
+    };
+
     AssimpLoader();
     virtual ~AssimpLoader();
 
-    bool convert(const AssOptions options, const Ogre::MeshPtr& meshPtr, Ogre::SkeletonPtr& skeletonPtr);
+    bool load(const Ogre::String& source, Ogre::Mesh* mesh, Ogre::SkeletonPtr& skeletonPtr,
+              const Options& options = Options());
 
 private:
-    bool createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::MeshPtr mMesh, Ogre::AxisAlignedBox& mAAB);
+    bool createSubMesh(const Ogre::String& name, int index, const aiNode* pNode, const aiMesh *mesh, const aiMaterial* mat, Ogre::Mesh* mMesh, Ogre::AxisAlignedBox& mAAB);
     Ogre::MaterialPtr createMaterial(int index, const aiMaterial* mat);
     void grabNodeNamesFromNode(const aiScene* mScene,  const aiNode* pNode);
     void grabBoneNamesFromNode(const aiScene* mScene,  const aiNode* pNode);
     void computeNodesDerivedTransform(const aiScene* mScene,  const aiNode *pNode, const aiMatrix4x4 accTransform);
     void createBonesFromNode(const aiScene* mScene,  const aiNode* pNode);
     void createBoneHiearchy(const aiScene* mScene,  const aiNode *pNode);
-    void loadDataFromNode(const aiScene* mScene,  const aiNode *pNode);
+    void loadDataFromNode(const aiScene* mScene,  const aiNode *pNode, Ogre::Mesh* mesh);
     void markAllChildNodesAsNeeded(const aiNode *pNode);
     void flagNodeAsNeeded(const char* name);
     bool isNodeNeeded(const char* name);
@@ -108,7 +98,6 @@ private:
     typedef std::map<Ogre::String, aiMatrix4x4> NodeTransformMap;
     NodeTransformMap mNodeDerivedTransformByName;
 
-    Ogre::MeshPtr mMesh;
     Ogre::SkeletonPtr mSkeleton;
 
     static int msBoneCount;
