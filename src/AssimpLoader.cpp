@@ -46,11 +46,14 @@ typedef Ogre::Affine3 Affine3;
 
 struct OgreLogStream : public Assimp::LogStream
 {
+    Ogre::LogMessageLevel _lml;
+    OgreLogStream(Ogre::LogMessageLevel lml) : _lml(lml) {}
+
     void write(const char* message)
     {
         Ogre::String msg(message);
         Ogre::StringUtil::trim(msg);
-        Ogre::LogManager::getSingleton().logMessage("Assimp: " + msg);
+        Ogre::LogManager::getSingleton().logMessage("Assimp: " + msg, _lml);
     }
 };
 
@@ -59,7 +62,10 @@ int AssimpLoader::msBoneCount = 0;
 AssimpLoader::AssimpLoader()
 {
     Assimp::DefaultLogger::create("");
-    Assimp::DefaultLogger::get()->attachStream(new OgreLogStream());
+    Assimp::DefaultLogger::get()->attachStream(new OgreLogStream(Ogre::LML_NORMAL),
+                                               ~Assimp::DefaultLogger::Err);
+    Assimp::DefaultLogger::get()->attachStream(new OgreLogStream(Ogre::LML_CRITICAL),
+                                               Assimp::DefaultLogger::Err);
 }
 
 AssimpLoader::~AssimpLoader()
