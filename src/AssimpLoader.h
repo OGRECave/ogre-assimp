@@ -36,15 +36,9 @@ THE SOFTWARE.
 #ifndef __AssimpLoader_h__
 #define __AssimpLoader_h__
 
-#include <string>
 #include <OgreMesh.h>
-//#include <assimp/assimp.hpp>
-//#include <assimp/aiScene.h>
-//#include <assimp/aiPostProcess.h>
-#include "assimp/Importer.hpp"
+
 #include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include <map>
 
 class AssimpLoader
 {
@@ -76,12 +70,8 @@ public:
         // this is a fix for that
         LP_CUT_ANIMATION_WHERE_NO_FURTHER_CHANGE = 1<<0,
 
-        // when 3ds max exports as DAE it gets some of the transforms wrong, get around this by using
-        // this option and a prior run with of the model exported as ASE
-        LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS = 1<<1,
-
         // Quiet mode - don't output anything
-        LP_QUIET_MODE = 1<<2
+        LP_QUIET_MODE = 1<<1
     };
 
     AssimpLoader();

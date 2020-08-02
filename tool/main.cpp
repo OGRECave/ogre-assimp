@@ -83,8 +83,6 @@ void help(void)
     std::cout << "                      (double between 0 and 1)" << std::endl;
     std::cout << "-3ds_ani_fix        = Fix for the fact that 3ds max exports the animation over a" << std::endl;
     std::cout << "                      longer time frame than the animation actually plays for" << std::endl;
-    std::cout << "-3ds_dae_fix        = When 3ds max exports as DAE it gets some of the transforms wrong, get around this" << std::endl;
-    std::cout << "                      by using this option and a prior run with of the model exported as ASE" << std::endl;
     std::cout << "-max_edge_angle deg = When normals are generated, max angle between two faces to smooth over" << std::endl;
     std::cout << "sourcefile          = name of file to convert" << std::endl;
     std::cout << "destination         = optional name of directory to write to. If you don't" << std::endl;
@@ -111,7 +109,6 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
 
     unOpt["-q"] = false;
     unOpt["-3ds_ani_fix"] = false;
-    unOpt["-3ds_dae_fix"] = false;
     binOpt["-log"] = "ass.log";
     binOpt["-aniName"] = "";
     binOpt["-aniSpeedMod"] = "1.0";
@@ -126,10 +123,6 @@ AssimpLoader::AssOptions parseArgs(int numArgs, char **args)
     if (unOpt["-3ds_ani_fix"])
     {
         opts.params |= AssimpLoader::LP_CUT_ANIMATION_WHERE_NO_FURTHER_CHANGE;
-    }
-    if (unOpt["-3ds_dae_fix"])
-    {
-        opts.params |= AssimpLoader::LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS;
     }
 
     opts.logFile = binOpt["-log"];

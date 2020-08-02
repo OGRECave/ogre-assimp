@@ -34,36 +34,12 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "AssimpLoader.h"
-#include "assimp/Importer.hpp"
-//#include "assimp/DefaultLogger.h"
-#include "assimp/DefaultLogger.hpp"
-#include "OgreDataStream.h"
-#include "OgreImage.h"
-#include "OgreTexture.h"
-#include "OgreTextureManager.h"
-#include "OgreMaterial.h"
-#include "OgreMaterialManager.h"
-#include "OgreLog.h"
-#include "OgreLogManager.h"
-#include "OgreHardwareBuffer.h"
-#include "OgreMesh.h"
-#include "OgreSubMesh.h"
-#include "OgreDefaultHardwareBufferManager.h"
-#include "OgreMeshManager.h"
-#include "OgreSceneManager.h"
-#include <OgreStringConverter.h>
-#include <OgreSkeletonManager.h>
-#include "OgreMeshSerializer.h"
-#include "OgreSkeletonSerializer.h"
-#include "OgreAnimation.h"
-#include "OgreAnimationTrack.h"
-#include "OgreKeyFrame.h"
-#include "OgreLodConfig.h"
-#include "OgreLodStrategyManager.h"
-#include "OgreDistanceLodStrategy.h"
-#include "Ogre.h"
-#include <tuple>
-//#include "OgreXMLSkeletonSerializer.h"
+
+#include <assimp/postprocess.h>
+#include <assimp/Importer.hpp>
+#include <assimp/DefaultLogger.hpp>
+
+#include <Ogre.h>
 
 typedef Ogre::Affine3 Affine3;
 
@@ -76,14 +52,6 @@ struct OgreLogStream : public Assimp::LogStream
         Ogre::LogManager::getSingleton().logMessage("Assimp: " + msg);
     }
 };
-
-Ogre::String toString(const aiColor4D& colour)
-{
-    return Ogre::StringConverter::toString(Ogre::Real(colour.r)) + " " +
-        Ogre::StringConverter::toString(Ogre::Real(colour.g)) + " " +
-        Ogre::StringConverter::toString(Ogre::Real(colour.b)) + " " +
-        Ogre::StringConverter::toString(Ogre::Real(colour.a));
-}
 
 int AssimpLoader::msBoneCount = 0;
 
@@ -102,10 +70,7 @@ bool AssimpLoader::convert(const AssOptions options, const Ogre::MeshPtr& meshPt
     mLoaderParams = options.params;
     mQuietMode = ((mLoaderParams & LP_QUIET_MODE) == 0) ? false : true;
     mCustomAnimationName = options.customAnimationName;
-    if ((mLoaderParams & LP_USE_LAST_RUN_NODE_DERIVED_TRANSFORMS) == false)
-    {
-        mNodeDerivedTransformByName.clear();
-    }
+    mNodeDerivedTransformByName.clear();
 
     Ogre::String basename, extension;
     Ogre::StringUtil::splitBaseFilename(meshPtr->getName(), basename, extension);
