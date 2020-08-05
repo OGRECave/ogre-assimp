@@ -39,6 +39,7 @@ THE SOFTWARE.
 #include <assimp/Importer.hpp>
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/MemoryIOWrapper.h>
+#include <assimp/DefaultIOSystem.h>
 
 #include <Ogre.h>
 
@@ -54,6 +55,39 @@ struct OgreLogStream : public Assimp::LogStream
         Ogre::String msg(message);
         Ogre::StringUtil::trim(msg);
         Ogre::LogManager::getSingleton().logMessage("Assimp: " + msg, _lml);
+    }
+};
+
+struct OgreIOSystem : public Assimp::MemoryIOSystem
+{
+    std::vector<Assimp::IOStream*> auxStreams;
+    Ogre::String _group;
+
+    OgreIOSystem(Ogre::MemoryDataStream& mainStream, const Ogre::String& group)
+        : Assimp::MemoryIOSystem(mainStream.getPtr(), mainStream.size(), NULL), _group(group)
+    {
+    }
+
+    Assimp::IOStream* Open(const char* pFile, const char* pMode) override
+    {
+        auto ret = Ogre::ResourceGroupManager::getSingleton().openResource(pFile, _group, NULL, false);
+        if (ret)
+        {
+            Ogre::MemoryDataStream buffer(ret, false);
+            auxStreams.emplace_back(new Assimp::MemoryIOStream(buffer.getPtr(), buffer.size(), true));
+            return auxStreams.back();
+        }
+        return Assimp::MemoryIOSystem::Open(pFile, pMode);
+    }
+    void Close(Assimp::IOStream* pFile) override
+    {
+        auto it = std::find(auxStreams.begin(), auxStreams.end(), pFile);
+        if (it != auxStreams.end())
+        {
+            delete pFile;
+            auxStreams.erase(it);
+        }
+        return Assimp::MemoryIOSystem::Close(pFile);
     }
 };
 
@@ -77,7 +111,7 @@ bool AssimpLoader::load(const Ogre::DataStreamPtr& source, const Ogre::String& t
 {
     Assimp::Importer importer;
     Ogre::MemoryDataStream buffer(source);
-    importer.SetIOHandler(new Assimp::MemoryIOSystem(buffer.getPtr(), buffer.size(), 0));
+    importer.SetIOHandler(new OgreIOSystem(buffer, mesh->getGroup()));
     auto name = Ogre::StringUtil::format(AI_MEMORYIO_MAGIC_FILENAME ".%s", type.c_str());
     _load(name.c_str(), importer, mesh, skeletonPtr, options);
     return true;
